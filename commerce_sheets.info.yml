@@ -1,0 +1,7 @@
+name: Commerce Sheets
+type: module
+description: Provides functionality for managing Commerce sites via spreadsheets.
+package: Commerce (contrib)
+core: 8.x
+dependencies:
+  - commerce:commerce

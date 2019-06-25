@@ -1,0 +1,7 @@
+name: Commerce Sheets Product
+type: module
+description: Provides functionality for managing Commerce products via spreadsheets.
+package: Commerce (contrib)
+core: 8.x
+dependencies:
+  - commerce:commerce_product

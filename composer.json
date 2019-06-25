@@ -1,0 +1,22 @@
+{
+  "name": "drupal/commerce_sheets",
+  "type": "drupal-module",
+  "description": "A Drupal module that provides functionality for managing Commerce sites via spreadsheets.",
+  "keywords": ["Drupal"],
+  "homepage": "https://www.drupal.org/project/commerce_sheets",
+  "license": "GPL-2.0+",
+  "authors": [
+    {
+      "name": "krystalcode",
+      "homepage": "https://www.drupal.org/u/krystalcode",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/commerce_sheets",
+    "source": "https://git.drupalcode.org/project/commerce_bluesnap.git"
+  },
+  "require": {
+    "drupal/commerce": "~2.12"
+  }
+}
