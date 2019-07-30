@@ -5,3 +5,7 @@ package: Commerce (contrib)
 core: 8.x
 dependencies:
   - commerce:commerce_product
+  - commerce_sheets:commerce_sheets
+config_devel:
+  install:
+    - system.action.commerce_sheets_export_product

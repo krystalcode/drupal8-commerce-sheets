@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_sheets_product
+id: commerce_sheets_export_product
+label: 'Export product'
+type: commerce_product
+plugin: commerce_sheets_export_product
+configuration: {  }
