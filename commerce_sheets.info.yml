@@ -5,3 +5,4 @@ package: Commerce (contrib)
 core: 8.x
 dependencies:
   - commerce:commerce
+  - views_bulk_operations:views_bulk_operations

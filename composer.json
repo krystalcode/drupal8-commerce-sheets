@@ -17,6 +17,8 @@
     "source": "https://git.drupalcode.org/project/commerce_bluesnap.git"
   },
   "require": {
-    "drupal/commerce": "~2.12"
+    "drupal/commerce": "~2.12",
+    "drupal/views_bulk_operations": "~3.2",
+    "phpoffice/phpspreadsheet": "1.7.0"
   }
 }
