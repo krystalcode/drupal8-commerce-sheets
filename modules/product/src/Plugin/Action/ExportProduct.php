@@ -252,7 +252,7 @@ class ExportProduct extends ExportBase {
    * Sorts field definitions in the order that they should be exported.
    *
    * The default order is alphabetical based on the fields' machine names, with
-   * read-only fields going first.
+   * read-only fields (locked cells) going first.
    *
    * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
    *   The bundle field definitions being processed.
@@ -314,6 +314,13 @@ class ExportProduct extends ExportBase {
     }
 
     $sheet->setCellValueByColumnAndRow($column, $row, $value);
+
+    // Let the field plugin apply styles to the cell.
+    if ($plugin) {
+      $plugin->toCellStyle(
+        $sheet->getStyleByColumnAndRow($column, $row)
+      );
+    }
 
     return [$row , $column + 1];
   }

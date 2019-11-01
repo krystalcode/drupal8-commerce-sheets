@@ -8,6 +8,8 @@ use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
 
+use PhpOffice\PhpSpreadsheet\Style\Style;
+
 /**
  * The interface for Commerce Sheets field handlers.
  *
@@ -36,5 +38,13 @@ interface FieldHandlerInterface extends
    *   The converted value.
    */
   public function toCellValue(FieldItemListInterface $field);
+
+  /**
+   * Sets the styles of the cell.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Style\Style $style
+   *   The style object of the cell.
+   */
+  public function toCellStyle(Style $style);
 
 }
