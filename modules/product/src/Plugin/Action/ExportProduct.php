@@ -306,14 +306,28 @@ class ExportProduct extends ExportBase {
     $row,
     $column
   ) {
-    $value = $field->value;
+    $value = NULL;
+    $data_type = NULL;
 
+    // Set the value and the data type of the cell.
     $plugin = $this->getFieldPlugin($field->getFieldDefinition());
     if ($plugin) {
       $value = $plugin->toCellValue($field);
+      $data_type = $plugin->toCellDataType();
+    }
+    // Let's have a fallback in case we cannot determine the plugin; that can
+    // happen for custom (or not yet supported) field types.
+    else {
+      $value = $field->value;
     }
 
-    $sheet->setCellValueByColumnAndRow($column, $row, $value);
+    $cell = $sheet->getCellByColumnAndRow($column, $row);
+    if ($data_type) {
+      $cell->setValueExplicit($value, $data_type);
+    }
+    else {
+      $cell->setValue($value);
+    }
 
     // Let the field plugin apply styles to the cell.
     if ($plugin) {

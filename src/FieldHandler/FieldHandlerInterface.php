@@ -40,6 +40,16 @@ interface FieldHandlerInterface extends
   public function toCellValue(FieldItemListInterface $field);
 
   /**
+   * Returns the data type value for the cell.
+   *
+   * @return string
+   *   The cell data type.
+   *
+   * @see \PhpOffice\PhpSpreadsheet\Cell\DataType
+   */
+  public function toCellDataType();
+
+  /**
    * Sets the styles of the cell.
    *
    * @param \PhpOffice\PhpSpreadsheet\Style\Style $style

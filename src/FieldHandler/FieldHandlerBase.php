@@ -95,6 +95,12 @@ abstract class FieldHandlerBase extends PluginBase implements FieldHandlerInterf
   /**
    * {@inheritdoc}
    */
+  public function toCellDataType() {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function toCellStyle(Style $style) {
     if ($this->getConfiguration()['locked']) {
       $style->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
