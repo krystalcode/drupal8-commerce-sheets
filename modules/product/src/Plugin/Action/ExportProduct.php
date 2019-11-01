@@ -339,4 +339,16 @@ class ExportProduct extends ExportBase {
     return [$row , $column + 1];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function getFieldPlugin($field_definition) {
+    switch ($field_definition->getName()) {
+      case 'product_id':
+        return $this->createFieldPlugin('integer', TRUE);
+    }
+
+    return parent::getFieldPlugin($field_definition);
+  }
+
 }

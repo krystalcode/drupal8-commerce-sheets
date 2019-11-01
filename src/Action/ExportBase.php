@@ -378,4 +378,67 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     return $field_definitions;
   }
 
+  /**
+   * Returns a field handler plugin for the given field definition.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition for which to create the handler plugin for.
+   *
+   * @return \Drupal\commerce_sheets\FieldHandler\FieldHandlerInterface|null
+   *   An instantiated field handler plugin if a handler type was determined,
+   *   NULL otherwise.
+   */
+  protected function getFieldPlugin($field_definition) {
+    $type = NULL;
+    $locked = FALSE;
+
+    // Special cases.
+    // @I Detect the bundle and status fields from the entity keys
+    switch ($field_definition->getName()) {
+      case 'type':
+        $type = 'bundle';
+        break;
+
+      case 'status':
+        $type = 'boolean';
+        break;
+    }
+
+    switch ($field_definition->getType()) {
+      case 'integer':
+        $type = 'integer';
+        break;
+
+      case 'string':
+      case 'string_long':
+      case 'text_long':
+      case 'text_with_summary':
+        $type = 'text';
+        break;
+    }
+
+    if (!$type) {
+      return;
+    }
+
+    return $this->createFieldPlugin($type, $locked);
+  }
+
+  /**
+   * Returns an instance of a handler plugin of the given type.
+   *
+   * @param bool $locked
+   *   The value for the Locked configuration setting of the plugin that
+   *   determines whether the resulting cell will be locked (read-only) or not.
+   *
+   * @return \Drupal\commerce_sheets\FieldHandler\FieldHandlerInterface
+   *   An instantiated field handler plugin of the given type.
+   */
+  protected function createFieldPlugin($type, $locked = FALSE) {
+    return $this->fieldHandlerManager->createInstance(
+      $type,
+      $locked ? ['locked' => TRUE] : []
+    );
+  }
+
 }
