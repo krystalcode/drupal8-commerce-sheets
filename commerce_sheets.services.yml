@@ -1,4 +1,9 @@
 services:
+  logger.channel.commerce_sheets:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['commerce_sheets']
+
   plugin.manager.commerce_sheets_field_handler:
     class: Drupal\commerce_sheets\FieldHandler\FieldHandlerManager
     parent: default_plugin_manager

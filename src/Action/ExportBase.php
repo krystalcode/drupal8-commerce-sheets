@@ -5,6 +5,7 @@ namespace Drupal\commerce_sheets\Action;
 use Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface;
 use Drupal\views_bulk_operations\Action\ViewsBulkOperationsActionBase;
 
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -12,11 +13,11 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Ods;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -57,6 +58,20 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   protected $fileStorage;
 
   /**
+   * The file system service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected $fileSystem;
+
+  /**
+   * The logger service.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * The messenger.
    *
    * @var \Drupal\Core\Messenger\MessengerInterface
@@ -69,13 +84,6 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @var \Drupal\Core\Render\Renderernterface
    */
   protected $renderer;
-
-  /**
-   * The stream wrapper manager.
-   *
-   * @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface
-   */
-  protected $streamWrapperManager;
 
   /**
    * Constructs a new Export object.
@@ -94,12 +102,14 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    *   The entity type manager.
    * @param \Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface $field_handler_manager
    *   The Commerce Sheets field handler plugin manager.
+   * @param \Drupal\Core\File\FileSystemInterface $file_system
+   *   The file system service.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger.
    * @param \Drupal\Core\Render\Renderernterface $renderer
    *   The renderer.
-   * @param \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager
-   *   The stream wrapper manager.
    */
   public function __construct(
     array $configuration,
@@ -109,9 +119,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     EntityFieldManagerInterface $entity_field_manager,
     EntityTypeManagerInterface $entity_type_manager,
     FieldHandlerManagerInterface $field_handler_manager,
+    FileSystemInterface $file_system,
+    LoggerInterface $logger,
     MessengerInterface $messenger,
-    RendererInterface $renderer,
-    StreamWrapperManagerInterface $stream_wrapper_manager
+    RendererInterface $renderer
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
@@ -119,9 +130,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     $this->entityFieldManager = $entity_field_manager;
     $this->fieldHandlerManager = $field_handler_manager;
     $this->fileStorage = $entity_type_manager->getStorage('file');
+    $this->fileSystem = $file_system;
+    $this->logger = $logger;
     $this->messenger = $messenger;
     $this->renderer = $renderer;
-    $this->streamWrapperManager = $stream_wrapper_manager;
   }
 
   /**
@@ -141,9 +153,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
       $container->get('entity_field.manager'),
       $container->get('entity_type.manager'),
       $container->get('plugin.manager.commerce_sheets_field_handler'),
+      $container->get('file_system'),
+      $container->get('logger.channel.commerce_sheets'),
       $container->get('messenger'),
-      $container->get('renderer'),
-      $container->get('stream_wrapper_manager')
+      $container->get('renderer')
     );
   }
 
@@ -216,6 +229,9 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
 
     // Write the generated output to a file.
     $file = $this->toFile($spreadsheet);
+    if (!$file) {
+      return;
+    }
 
     // Display a message to the user with a link to download the file.
     $file_url = file_create_url($file->getFileUri());
@@ -232,24 +248,44 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @param \PhpOffice\PhpSpreadsheet\Spreadsheet $spreadsheet
    *   The spreadsheet that will be saved to a file.
    *
-   * @return \Drupal\file\FileInterface
-   *   The generated file.
+   * @return \Drupal\file\FileInterface|null
+   *   The generated file, or NULL if the file could not be written to disk.
    */
   protected function toFile($spreadsheet) {
     $time = date('YmdHis', REQUEST_TIME);
     $hash = bin2hex(openssl_random_pseudo_bytes(8));
     $filename = $time . '-' . $hash . '.ods';
+    $directory_uri = 'private://commerce_sheets';
+    $file_uri = $directory_uri . '/' . $filename;
 
-    // @I Make scheme configurable
-    $wrapper = $this->streamWrapperManager->getViaScheme('private');
-    $filepath = $wrapper->realpath() . '/' . $filename;
+    // @I Make scheme and path configurable
+    $directory_exists = $this->fileSystem->prepareDirectory(
+      $directory_uri,
+      FileSystemInterface::CREATE_DIRECTORY
+    );
+    if (!$directory_exists) {
+      $log_message = sprintf(
+        'An error occurred while preparing the directory with URI "%s" for
+        writing a Commerce Sheets export file. The directory could not be
+        created or is not/could not be made writable',
+        $directory_uri
+      );
+      $this->logger->error($log_message);
+
+      $status_message = $this->t(
+        'An error ocurred while generating the export file, please try again. If
+        the error persists please contact your system administrator.'
+      );
+      $this->messenger->addMessage($status_message);
+      return;
+    }
 
     $writer = new Ods($spreadsheet);
-    $writer->save($filepath);
+    $writer->save($this->fileSystem->realpath($file_uri));
 
     // Create a file entity.
     $file = $this->fileStorage->create([
-      'uri' => $filepath,
+      'uri' => $file_uri,
       'uid' => $this->currentUser->id(),
       'status' => FILE_STATUS_TEMPORARY,
     ]);
