@@ -5,6 +5,7 @@ namespace Drupal\commerce_sheets\Action;
 use Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface;
 use Drupal\views_bulk_operations\Action\ViewsBulkOperationsActionBase;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
