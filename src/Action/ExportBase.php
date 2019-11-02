@@ -494,6 +494,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
         $type = 'integer';
         break;
 
+      case 'path':
+        $type = 'path';
+        break;
+
       case 'string':
       case 'string_long':
       case 'text_long':
