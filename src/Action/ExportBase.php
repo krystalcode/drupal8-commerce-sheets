@@ -238,11 +238,57 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
 
     // Generate header rows for the main sheet.
     $row = $this->writeHeader($sheet, $entities, 1);
+    $last_header_row = $row - 1;
 
     // Generate entity rows for the main sheet.
     foreach ($entities as $entity) {
       $row = $this->writeEntity($sheet, $entity, $row);
     }
+
+    // Size adjustments for all columns/rows.
+    // @I Refactor global column/row sizing to a separate method
+    // Set width to automatic for all columns.
+    foreach ($sheet->getColumnIterator() as $column) {
+      $sheet->getColumnDimension($column->getColumnIndex())->setAutoSize(TRUE);
+    }
+
+    // Set heights for all rows.
+    foreach ($sheet->getRowIterator() as $row) {
+      $row_index = $row->getRowIndex();
+      if ($row_index < $last_header_row) {
+        continue;
+      }
+      if ($row_index === $last_header_row) {
+        $sheet->getRowDimension($row_index)->setRowHeight(80);
+        continue;
+      }
+      $sheet->getRowDimension($row_index)->setRowHeight(50);
+    }
+
+    // Set maximum width to 80 for all rows.
+    $max_width = 80;
+    foreach ($spreadsheet->getAllSheets() as $s) {
+      $s->calculateColumnWidths();
+      foreach ($s->getColumnDimensions() as $column_dimension) {
+        if (!$column_dimension->getAutoSize()) {
+          continue;
+        }
+
+        $column_width = $column_dimension->getWidth();
+        if ($column_width > $max_width) {
+          $column_dimension->setAutoSize(FALSE);
+          $column_dimension->setWidth($max_width);
+        }
+      }
+    }
+
+    // Styles. We want all cell values to be top-aligned vertically.
+    $sheet->getStyle($sheet->calculateWorksheetDimension())
+      ->getAlignment()
+      ->setVertical(Alignment::VERTICAL_TOP)
+      ->setWrapText(TRUE);
+
+    // @I Give the opportunity to update the main sheet or add new sheets.
 
     // Write the generated output to a file.
     $file = $this->toFile($spreadsheet);
