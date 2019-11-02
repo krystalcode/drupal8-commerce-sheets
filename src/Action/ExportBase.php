@@ -14,6 +14,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 
+use PhpOffice\PhpSpreadsheet\Helper\Html;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Ods;
@@ -28,6 +29,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * combined result to a spreadsheet file.
  */
 abstract class ExportBase extends ViewsBulkOperationsActionBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * The main background color used in header rows.
+   */
+  const HEADER_COLOR = 'CCCCCC';
+
+  /**
+   * The secondary, lighter, background color used in header rows.
+   */
+  const HEADER_SUB_COLOR = 'EEEEEE';
 
   /**
    * The current user.
@@ -295,7 +306,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   }
 
   /**
-   * Generates the header row cell values for the entity type's fields.
+   * Generates the header row cell values for the entity type's field labels.
    *
    * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
    *   The sheet to which the rows will be written.
@@ -309,7 +320,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @return int $column
    *   The last column written for the given field definitions.
    */
-  protected function writeHeaderForFields(
+  protected function writeHeaderForFieldLabels(
     Worksheet $sheet,
     array $field_definitions,
     $row,
@@ -321,10 +332,84 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
         $row,
         $field_definition->getLabel()
       );
-      $sheet->getStyleByColumnAndRow(
+
+      // Styles.
+      $styleArray = [
+        'font' => [
+          'bold' => true,
+        ],
+        'fill' => [
+          'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+          'startColor' => [
+            'argb' => self::HEADER_COLOR,
+          ],
+        ],
+      ];
+
+      $style = $sheet->getStyleByColumnAndRow(
         $column,
         $row
-      )->getAlignment()->setWrapText(TRUE);
+      );
+      $style->applyFromArray($styleArray);
+
+      $column++;
+    }
+
+    return $column;
+  }
+
+  /**
+   * Generates the header row cell values for the entity type's field info.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   *   The sheet to which the rows will be written.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
+   *   The field definitions for the type of the entities being exported.
+   * @param int $row
+   *   The row at which we are writing the values.
+   * @param int $column
+   *   The column at which to start writing the values.
+   *
+   * @return int $column
+   *   The last column written for the given field definitions.
+   */
+  protected function writeHeaderForFieldInfo(
+    Worksheet $sheet,
+    array $field_definitions,
+    $row,
+    $column
+  ) {
+    $html = new Html();
+
+    foreach ($field_definitions as $field_definition) {
+      // Generate the text and set it as the cell value.
+      $text = '<em>ID</em>: ' . $field_definition->getName() .
+        '<br><em>Type</em>: ' . $field_definition->getType();
+      $description = $field_definition->getDescription();
+      if ($description) {
+        $text .= '<br><em>Description</em>: ' . $description;
+      }
+      $sheet->setCellValueByColumnAndRow(
+        $column,
+        $row,
+        $html->toRichTextObject($text)
+      );
+
+      // Styles.
+      $styleArray = [
+        'fill' => [
+          'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+          'startColor' => [
+            'argb' => self::HEADER_SUB_COLOR,
+          ],
+        ],
+      ];
+
+      $style = $sheet->getStyleByColumnAndRow(
+        $column,
+        $row
+      );
+      $style->applyFromArray($styleArray);
 
       $column++;
     }

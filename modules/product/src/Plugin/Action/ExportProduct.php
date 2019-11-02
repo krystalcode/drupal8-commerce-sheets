@@ -51,19 +51,66 @@ class ExportProduct extends ExportBase {
     array $entities,
     $row
   ) {
-    $sheet->setCellValueByColumnAndRow($row, 0, 'Products');
+    $first_row = $row;
+    $sheet->setCellValueByColumnAndRow($first_row, 1, 'BASE PRODUCT FIELDS');
 
     $row++;
     $column = 1;
     $entity = reset($entities);
 
-    // Header values for base fields.
-    $field_definitions = $this->getBaseFieldDefinitions($entity);
-    $column = $this->writeHeaderForFields($sheet, $field_definitions, $row, $column);
+    $base_field_definitions = $this->getBaseFieldDefinitions($entity);
+    $bundle_field_definitions = $this->getBundleFieldDefinitions($entity);
 
-    // Header values for bundle fields.
-    $field_definitions = $this->getBundleFieldDefinitions($entity);
-    $this->writeHeaderForFields($sheet, $field_definitions, $row, $column);
+    // Header values for field labels.
+    $column = $this->writeHeaderForFieldLabels(
+      $sheet,
+      $base_field_definitions,
+      $row,
+      $column);
+    $sheet->setCellValueByColumnAndRow(
+      $column,
+      $first_row,
+      'BUNDLE PRODUCT FIELDS'
+    );
+    $this->writeHeaderForFieldLabels(
+      $sheet,
+      $bundle_field_definitions,
+      $row,
+      $column
+    );
+
+    // Header values for additional field information.
+    $row++;
+    $column = 1;
+    $column = $this->writeHeaderForFieldInfo(
+      $sheet,
+      $base_field_definitions,
+      $row,
+      $column
+    );
+    $column = $this->writeHeaderForFieldInfo(
+      $sheet,
+      $bundle_field_definitions,
+      $row,
+      $column
+    );
+
+    // Styles for the first header row.
+    $styleArray = [
+      'font' => [
+        'bold' => TRUE,
+      ],
+      'fill' => [
+        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+        'startColor' => [
+          'argb' => self::HEADER_COLOR,
+        ],
+      ],
+    ];
+
+    $first_row_highest_column = $sheet->getHighestColumn();
+    $style = $sheet->getStyle('A1:' . $first_row_highest_column . '1');
+    $style->applyFromArray($styleArray);
 
     return $row + 1;
   }
