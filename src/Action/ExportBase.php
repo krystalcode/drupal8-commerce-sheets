@@ -230,6 +230,12 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
 
+    // Enable protection for the sheet and set it to FALSE as the default for
+    // all cells. This is required so that we can then set it to TRUE for cells
+    // that we do need to lock (protect).
+    $sheet->getProtection()->setSheet(TRUE);
+    $spreadsheet->getDefaultStyle()->getProtection()->setLocked(FALSE);
+
     // Generate header rows for the main sheet.
     $row = $this->writeHeader($sheet, $entities, 1);
 
