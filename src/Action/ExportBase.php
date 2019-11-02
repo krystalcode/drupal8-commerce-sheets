@@ -504,6 +504,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
       case 'text_with_summary':
         $type = 'text';
         break;
+
+      case 'entity_reference':
+        $type = 'entity_reference';
+        break;
     }
 
     if (!$type) {
