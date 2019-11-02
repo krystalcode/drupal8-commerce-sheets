@@ -16,7 +16,8 @@ use Drupal\Core\Session\AccountProxyInterface;
 
 use PhpOffice\PhpSpreadsheet\Helper\Html;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Alignment as StyleAlignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill as StyleFill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Psr\Log\LoggerInterface;
@@ -51,14 +52,14 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   /**
    * The entity field manager.
    *
-   * @var \Drupal\Core\Entity\EntityFieldManagerInterface.
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface
    */
   protected $entityFieldManager;
 
   /**
    * The Commerce Sheets field handler plugin manager.
    *
-   * @var \Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface.
+   * @var \Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface
    */
   protected $fieldHandlerManager;
 
@@ -120,7 +121,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    *   The logger service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger.
-   * @param \Drupal\Core\Render\Renderernterface $renderer
+   * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer.
    */
   public function __construct(
@@ -178,15 +179,17 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @param \Drupal\Core\Entity\EntityInterface[] $entities
    *   The entities that will be processed.
    */
-  abstract protected function validateEntities(array $entites);
+  abstract protected function validateEntities(array $entities);
 
   /**
    * Generates header rows for the given entities and writes them to the sheet.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the rows will be written.
    * @param \Drupal\Core\Entity\EntityInterface[] $entities
    *   The entities that will be processed.
+   * @param int $row
+   *   The row at which to start writing the header.
    *
    * @return int
    *   The last row written for the header rows.
@@ -286,7 +289,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     // Styles. We want all cell values to be top-aligned vertically.
     $sheet->getStyle($sheet->calculateWorksheetDimension())
       ->getAlignment()
-      ->setVertical(Alignment::VERTICAL_TOP)
+      ->setVertical(StyleAlignment::VERTICAL_TOP)
       ->setWrapText(TRUE);
 
     // @I Give the opportunity to update the main sheet or add new sheets.
@@ -315,7 +318,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @return \Drupal\file\FileInterface|null
    *   The generated file, or NULL if the file could not be written to disk.
    */
-  protected function toFile($spreadsheet) {
+  protected function toFile(Spreadsheet $spreadsheet) {
     $time = date('YmdHis', REQUEST_TIME);
     $hash = bin2hex(openssl_random_pseudo_bytes(8));
     $filename = $time . '-' . $hash . '.xlsx';
@@ -361,7 +364,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   /**
    * Generates the header row cell values for the entity type's field labels.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the rows will be written.
    * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
    *   The field definitions for the type of the entities being exported.
@@ -370,7 +373,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @param int $column
    *   The column at which to start writing the values.
    *
-   * @return int $column
+   * @return int
    *   The last column written for the given field definitions.
    */
   protected function writeHeaderForFieldLabels(
@@ -389,10 +392,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
       // Styles.
       $styleArray = [
         'font' => [
-          'bold' => true,
+          'bold' => TRUE,
         ],
         'fill' => [
-          'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+          'fillType' => StyleFill::FILL_SOLID,
           'startColor' => [
             'argb' => self::HEADER_COLOR,
           ],
@@ -414,7 +417,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   /**
    * Generates the header row cell values for the entity type's field info.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the rows will be written.
    * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
    *   The field definitions for the type of the entities being exported.
@@ -423,7 +426,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @param int $column
    *   The column at which to start writing the values.
    *
-   * @return int $column
+   * @return int
    *   The last column written for the given field definitions.
    */
   protected function writeHeaderForFieldInfo(
@@ -451,7 +454,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
       // Styles.
       $styleArray = [
         'fill' => [
-          'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+          'fillType' => StyleFill::FILL_SOLID,
           'startColor' => [
             'argb' => self::HEADER_SUB_COLOR,
           ],
@@ -496,7 +499,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity being processed.
    *
-   * @return Drupal\Core\Field\FieldDefinitionInterface[]
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
    *   The bundle field definitions.
    */
   protected function getBundleFieldDefinitions(EntityInterface $entity) {
@@ -526,7 +529,9 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    *   An instantiated field handler plugin if a handler type was determined,
    *   NULL otherwise.
    */
-  protected function getFieldPlugin($field_definition) {
+  protected function getFieldPlugin(
+    FieldDefinitionInterface $field_definition
+  ) {
     $type = NULL;
     $locked = FALSE;
 
@@ -573,6 +578,8 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   /**
    * Returns an instance of a handler plugin of the given type.
    *
+   * @param string $type
+   *   The type of the handler plugin to create.
    * @param bool $locked
    *   The value for the Locked configuration setting of the plugin that
    *   determines whether the resulting cell will be locked (read-only) or not.

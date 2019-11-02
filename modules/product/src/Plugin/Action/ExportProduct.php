@@ -7,6 +7,7 @@ use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
+use PhpOffice\PhpSpreadsheet\Style\Fill as StyleFill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
@@ -101,7 +102,7 @@ class ExportProduct extends ExportBase {
         'bold' => TRUE,
       ],
       'fill' => [
-        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+        'fillType' => StyleFill::FILL_SOLID,
         'startColor' => [
           'argb' => self::HEADER_COLOR,
         ],
@@ -138,9 +139,9 @@ class ExportProduct extends ExportBase {
   /**
    * Converts the product to one or more rows and writes them to the sheet.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the rows will be written.
-   * @param \Drupal\Core\Entity\EntityInterface $product
+   * @param \Drupal\commerce_product\Entity\ProductInterface $product
    *   The product being processed.
    * @param int $row
    *   The row at which to start writing for the product.
@@ -175,9 +176,9 @@ class ExportProduct extends ExportBase {
   /**
    * Converts the base fields for the product and writes them to the sheet.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the rows will be written.
-   * @param \Drupal\Core\Entity\EntityInterface $product
+   * @param \Drupal\commerce_product\Entity\ProductInterface $product
    *   The product being processed.
    * @param int $row
    *   The row at which to start writing for the base fields.
@@ -207,13 +208,12 @@ class ExportProduct extends ExportBase {
     return [$row, $column];
   }
 
-
   /**
    * Converts the bundle fields for the product and writes them to the sheet.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the rows will be written.
-   * @param \Drupal\Core\Entity\EntityInterface $product
+   * @param \Drupal\commerce_product\Entity\ProductInterface $product
    *   The product being processed.
    * @param int $row
    *   The row at which to start writing for the bundle fields.
@@ -273,7 +273,7 @@ class ExportProduct extends ExportBase {
   }
 
   /**
-   * Filters bundle field definitions to exclude those that will not be exported.
+   * Filters bundle field definitions excluding those that will not be exported.
    *
    * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
    *   The bundle field definitions being processed.
@@ -335,10 +335,12 @@ class ExportProduct extends ExportBase {
   }
 
   /**
-   * Converts an individual field value and writes it to the given sheet.
+   * Converts an individual field and writes it to the given sheet.
    *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
    *   The sheet to which the vlaue will be written.
+   * @param \Drupal\Core\Field\FieldItemListInterface $field
+   *   The field which to convert to a cell value.
    * @param int $row
    *   The row at which to write the value.
    * @param int $column
