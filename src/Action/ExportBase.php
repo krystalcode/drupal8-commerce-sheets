@@ -17,7 +17,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use PhpOffice\PhpSpreadsheet\Helper\Html;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Writer\Ods;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -317,7 +317,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   protected function toFile($spreadsheet) {
     $time = date('YmdHis', REQUEST_TIME);
     $hash = bin2hex(openssl_random_pseudo_bytes(8));
-    $filename = $time . '-' . $hash . '.ods';
+    $filename = $time . '-' . $hash . '.xlsx';
     $directory_uri = 'private://commerce_sheets';
     $file_uri = $directory_uri . '/' . $filename;
 
@@ -343,7 +343,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
       return;
     }
 
-    $writer = new Ods($spreadsheet);
+    $writer = new Xlsx($spreadsheet);
     $writer->save($this->fileSystem->realpath($file_uri));
 
     // Create a file entity.
