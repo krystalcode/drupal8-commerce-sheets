@@ -4,9 +4,12 @@ namespace Drupal\commerce_sheets_product\Plugin\Action;
 
 use Drupal\commerce_sheets\Action\ExportBase;
 use Drupal\commerce_product\Entity\ProductInterface;
+
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
+
 use PhpOffice\PhpSpreadsheet\Style\Fill as StyleFill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -31,12 +34,16 @@ class ExportProduct extends ExportBase {
     AccountInterface $account = NULL,
     $return_as_object = FALSE
   ) {
-    /** @var \Drupal\commerce_product\Entity\ProductInterface $object */
-    $result = $object
-      ->access('update', $account, TRUE)
-      ->andIf($object->status->access('edit', $account, TRUE));
+    $type = $object->bundle();
 
-    return $return_as_object ? $result : $result->isAllowed();
+    return AccessResult::allowedIfHasPermissions(
+      $account,
+      [
+        'commerce_sheets export any commerce_product',
+        "commerce_sheets export any $type commerce_product",
+      ],
+      'OR'
+    );
   }
 
   /**
