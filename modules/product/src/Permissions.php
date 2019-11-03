@@ -2,16 +2,55 @@
 
 namespace Drupal\commerce_sheets_product;
 
-use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\commerce_product\Entity\ProductType;
 use Drupal\commerce_product\Entity\ProductTypeInterface;
+
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
+
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides dynamic permissions for exporting products of different types.
  */
-class Permissions {
+class Permissions implements ContainerInjectionInterface {
 
   use StringTranslationTrait;
+
+  /**
+   * The product type storage.
+   *
+   * @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface
+   */
+  protected $productTypeStorage;
+
+  /**
+   * Constructs a new Permissions object.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
+   *   The string translation service.
+   */
+  public function __construct(
+    EntityTypeManagerInterface $entity_type_manager,
+    TranslationInterface $string_translation
+  ) {
+    $this->productTypeStorage = $entity_type_manager
+      ->getStorage('commerce_product_type');
+    $this->stringTranslation = $string_translation;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('entity_type.manager'),
+      $container->get('string_translation')
+    );
+  }
 
   /**
    * Returns an array of product type permissions.
@@ -23,12 +62,12 @@ class Permissions {
   public function permissions() {
     $permissions = [
       'commerce_sheets export any commerce_product' => [
-        'title' => $this->t('Export any product of any type')
-      ]
+        'title' => $this->t('Export any product of any type'),
+      ],
     ];
 
     // Generate export permissions for all product types.
-    foreach (ProductType::loadMultiple() as $type) {
+    foreach ($this->productTypeStorage->loadMultiple() as $type) {
       $permissions += $this->buildPermissions($type);
     }
 
