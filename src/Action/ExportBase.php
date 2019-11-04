@@ -5,7 +5,9 @@ namespace Drupal\commerce_sheets\Action;
 use Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface;
 use Drupal\views_bulk_operations\Action\ViewsBulkOperationsActionBase;
 
+use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -30,8 +32,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides a base mechanism for iterating over the given entities, creating any
  * header rows, converting each entity to one or more rows, and writing the
  * combined result to a spreadsheet file.
+ *
+ * There is support for exporting one or more associated entities held in an
+ * entity reference field at the main entity.
  */
-abstract class ExportBase extends ViewsBulkOperationsActionBase implements ContainerFactoryPluginInterface {
+abstract class ExportBase extends ViewsBulkOperationsActionBase implements
+  ContainerFactoryPluginInterface {
 
   /**
    * The main background color used in header rows.
@@ -42,6 +48,13 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * The secondary, lighter, background color used in header rows.
    */
   const HEADER_SUB_COLOR = 'EEEEEE';
+
+  /**
+   * The Action plugin manager.
+   *
+   * @var \Drupal\Component\Plugin\PluginManagerInterface
+   */
+  protected $actionPluginManager;
 
   /**
    * The current user.
@@ -56,6 +69,13 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    * @var \Drupal\Core\Entity\EntityFieldManagerInterface
    */
   protected $entityFieldManager;
+
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
 
   /**
    * The Commerce Sheets field handler plugin manager.
@@ -100,6 +120,13 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   protected $renderer;
 
   /**
+   * The Action plugin for the secondary entity(ies) to be exported.
+   *
+   * @var \Drupal\commerce_sheets\Action\ExportInterface
+   */
+  protected $secondaryEntityPlugin;
+
+  /**
    * Constructs a new Export object.
    *
    * @param array $configuration
@@ -108,6 +135,8 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    *   The plugin ID for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
+   * @param \Drupal\Component\Plugin\PluginManagerInterface $action_plugin_manager
+   *   The Action plugin manager.
    * @param \Drupal\Core\Session\AccountProxyInterface $current_user_proxy
    *   The account proxy for the current user.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
@@ -129,6 +158,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     array $configuration,
     $plugin_id,
     $plugin_definition,
+    PluginManagerInterface $action_plugin_manager,
     AccountProxyInterface $current_user_proxy,
     EntityFieldManagerInterface $entity_field_manager,
     EntityTypeManagerInterface $entity_type_manager,
@@ -140,8 +170,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
+    $this->actionPluginManager = $action_plugin_manager;
     $this->currentUser = $current_user_proxy->getAccount();
     $this->entityFieldManager = $entity_field_manager;
+    $this->entityTypeManager = $entity_type_manager;
     $this->fieldHandlerManager = $field_handler_manager;
     $this->fileStorage = $entity_type_manager->getStorage('file');
     $this->fileSystem = $file_system;
@@ -163,6 +195,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
       $configuration,
       $plugin_id,
       $plugin_definition,
+      $container->get('plugin.manager.action'),
       $container->get('current_user'),
       $container->get('entity_field.manager'),
       $container->get('entity_type.manager'),
@@ -181,44 +214,6 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    *   The entities that will be processed.
    */
   abstract protected function validateEntities(array $entities);
-
-  /**
-   * Generates header rows for the given entities and writes them to the sheet.
-   *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
-   *   The sheet to which the rows will be written.
-   * @param \Drupal\Core\Entity\EntityInterface[] $entities
-   *   The entities that will be processed.
-   * @param int $row
-   *   The row at which to start writing the header.
-   *
-   * @return int
-   *   The last row written for the header rows.
-   */
-  abstract protected function writeHeader(
-    Worksheet $sheet,
-    array $entities,
-    $row
-  );
-
-  /**
-   * Converts the given entity to one or more rows and writes them to the sheet.
-   *
-   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet
-   *   The sheet to which the rows will be written.
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being processed.
-   * @param int $row
-   *   The row at which to start writing for the entity.
-   *
-   * @return int
-   *   The last row written for the entity.
-   */
-  abstract protected function writeEntity(
-    Worksheet $worksheet,
-    EntityInterface $entity,
-    $row
-  );
 
   /**
    * {@inheritdoc}
@@ -242,12 +237,12 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     $spreadsheet->getDefaultStyle()->getProtection()->setLocked(FALSE);
 
     // Generate header rows for the main sheet.
-    $row = $this->writeHeader($sheet, $entities, 1);
+    list($row) = $this->writeHeader($sheet, $entities, 1, 1);
     $last_header_row = $row - 1;
 
     // Generate entity rows for the main sheet.
     foreach ($entities as $entity) {
-      $row = $this->writeEntity($sheet, $entity, $row);
+      list($row) = $this->writeEntity($sheet, $entity, $row, 1);
     }
 
     // Size adjustments for all columns/rows.
@@ -311,6 +306,115 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   }
 
   /**
+   * Generates header rows for the given entities and writes them to the sheet.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the rows will be written.
+   * @param \Drupal\Core\Entity\EntityInterface[] $entities
+   *   The entities that will be processed.
+   * @param int $row
+   *   The row at which to start writing the header.
+   * @param int $column
+   *   The column at which to start writing the header.
+   *
+   * @return int[]
+   *   An array containing the row and the column after the last ones written
+   *   for the header rows. They are the row/column where the next writer should
+   *   pick up.
+   */
+  public function writeHeader(
+    Worksheet $sheet,
+    array $entities,
+    $row,
+    $column
+  ) {
+    $entity = reset($entities);
+    list($end_row, $secondary_entity_column) = $this->doWriteHeader(
+      $sheet,
+      $entity->getEntityTypeId(),
+      $entity->getEntityType()->getLabel(),
+      $entity->bundle(),
+      $row,
+      $column
+    );
+
+    if (!$this->hasSecondaryEntity()) {
+      return [$end_row, $secondary_entity_column];
+    }
+
+    $secondary_entities = $this->getSecondaryEntityFieldValue($entity);
+    if (!$secondary_entities) {
+      return [$end_row, $secondary_entity_column];
+    }
+
+    // @I Check permissions for secondary entity
+
+    list($end_row, $end_column) = $this->getSecondaryEntityPlugin()
+      ->writeHeader(
+        $sheet,
+        $secondary_entities,
+        $row,
+        $secondary_entity_column
+      );
+
+    return [$end_row, $end_column];
+  }
+
+  /**
+   * Converts the given entity to one or more rows and writes them to the sheet.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the rows will be written.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity being processed.
+   * @param int $row
+   *   The row at which to start writing for the entity.
+   * @param int $column
+   *   The column at which to start writing for the entity.
+   *
+   * @return int[]
+   *   An array containing the row and the column after the last ones written
+   *   for the entity. They are the row/column where the next writer should pick
+   *   up.
+   */
+  public function writeEntity(
+    Worksheet $sheet,
+    EntityInterface $entity,
+    $row,
+    $column
+  ) {
+    list($row, $secondary_entity_column) = $this->writeEntityFields(
+      $sheet,
+      $entity,
+      $row,
+      $column
+    );
+
+    if (!$this->hasSecondaryEntity()) {
+      return [$row + 1, $secondary_entity_column];
+    }
+
+    $secondary_entities = $this->getSecondaryEntityFieldValue($entity);
+    if (!$secondary_entities) {
+      return [$row + 1, $secondary_entity_column];
+    }
+
+    // @I Check permissions for secondary entity
+
+    $secondary_entity_plugin = $this->getSecondaryEntityPlugin();
+    foreach ($secondary_entities as $secondary_entity) {
+      list($row, $column) = $secondary_entity_plugin->writeEntity(
+        $sheet,
+        $secondary_entity,
+        $row,
+        $secondary_entity_column
+      );
+    }
+
+    return [$row, $column];
+  }
+
+  /**
    * Saves the given spreadsheet to a new file.
    *
    * @param \PhpOffice\PhpSpreadsheet\Spreadsheet $spreadsheet
@@ -360,6 +464,109 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
     $file->save();
 
     return $file;
+  }
+
+  /**
+   * Performs the actual writing of the header rows for the given entity data.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the rows will be written.
+   * @param string $entity_type_id
+   *   The ID of the entty type for which the header rows are generated.
+   * @param string $entity_type_label
+   *   The label of the entty type for which the header rows are generated.
+   * @param string $entity_bundle
+   *   The bundle of the entity(ies) for which the header rows are generated.
+   * @param int $row
+   *   The row at which to start writing for the entity.
+   * @param int $column
+   *   The column at which to start writing for the entity.
+   *
+   * @return int[]
+   *   An array containing the row and the column after the last ones written
+   *   for the header. They are the row/column where the next writer should pick
+   *   up.
+   */
+  protected function doWriteHeader(
+    Worksheet $sheet,
+    $entity_type_id,
+    $entity_type_label,
+    $entity_bundle,
+    $row,
+    $column
+  ) {
+    $entity_type_label = strtoupper($entity_type_label);
+
+    $first_row = $row;
+    $first_column = $column;
+
+    $sheet->setCellValueByColumnAndRow(
+      $first_column,
+      $first_row,
+      "BASE $entity_type_label FIELDS"
+    );
+
+    $row++;
+
+    $base_field_definitions = $this->getBaseFieldDefinitions($entity_type_id);
+    $bundle_field_definitions = $this->getBundleFieldDefinitions(
+      $entity_type_id,
+      $entity_bundle
+    );
+
+    // Header values for field labels.
+    $column = $this->writeHeaderForFieldLabels(
+      $sheet,
+      $base_field_definitions,
+      $row,
+      $column
+    );
+    $sheet->setCellValueByColumnAndRow(
+      $column,
+      $first_row,
+      "BUNDLE $entity_type_label FIELDS"
+    );
+    $this->writeHeaderForFieldLabels(
+      $sheet,
+      $bundle_field_definitions,
+      $row,
+      $column
+    );
+
+    // Header values for additional field information.
+    $row++;
+    $column = $first_column;
+    $column = $this->writeHeaderForFieldInfo(
+      $sheet,
+      $base_field_definitions,
+      $row,
+      $column
+    );
+    $column = $this->writeHeaderForFieldInfo(
+      $sheet,
+      $bundle_field_definitions,
+      $row,
+      $column
+    );
+
+    // Styles for the first header row.
+    $styleArray = [
+      'font' => [
+        'bold' => TRUE,
+      ],
+      'fill' => [
+        'fillType' => StyleFill::FILL_SOLID,
+        'startColor' => [
+          'argb' => self::HEADER_COLOR,
+        ],
+      ],
+    ];
+
+    $first_row_highest_column = $sheet->getHighestColumn();
+    $style = $sheet->getStyle('A1:' . $first_row_highest_column . '1');
+    $style->applyFromArray($styleArray);
+
+    return [$row + 1, $column];
   }
 
   /**
@@ -475,17 +682,290 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   }
 
   /**
-   * Returns the base field definitions for the type of the given entity.
+   * Converts all fields for the entity and writes them to the sheet.
    *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the rows will be written.
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity being processed.
+   * @param int $row
+   *   The row at which to start writing for the entity.
+   * @param int $column
+   *   The column at which to start writing for the entity.
+   *
+   * @return int[]
+   *   An array containing the last row and the column after the last one
+   *   written for the fields.
+   */
+  protected function writeEntityFields(
+    Worksheet $sheet,
+    EntityInterface $entity,
+    $row,
+    $column
+  ) {
+    list($row, $column) = $this->writeEntityBaseFields(
+      $sheet,
+      $entity,
+      $row,
+      $column
+    );
+    list($row, $column) = $this->writeEntityBundleFields(
+      $sheet,
+      $entity,
+      $row,
+      $column
+    );
+
+    return [$row, $column];
+  }
+
+  /**
+   * Converts the base fields for the entity and writes them to the sheet.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the rows will be written.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity being processed.
+   * @param int $row
+   *   The row at which to start writing for the base fields.
+   * @param int $column
+   *   The column at which to start writing for the base fields.
+   *
+   * @return int[]
+   *   An array containing the last row and the column after the last one
+   *   written for the base fields.
+   */
+  protected function writeEntityBaseFields(
+    Worksheet $sheet,
+    EntityInterface $entity,
+    $row,
+    $column
+  ) {
+    $field_definitions = $this->getBaseFieldDefinitions(
+      $entity->getEntityTypeId()
+    );
+
+    foreach ($field_definitions as $field_definition) {
+      list($row, $column) = $this->writeEntityField(
+        $sheet,
+        $entity->get($field_definition->getName()),
+        $row,
+        $column
+      );
+    }
+
+    return [$row, $column];
+  }
+
+  /**
+   * Converts the bundle fields for the entity and writes them to the sheet.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the rows will be written.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity being processed.
+   * @param int $row
+   *   The row at which to start writing for the bundle fields.
+   * @param int $column
+   *   The column at which to start writing for the bundle fields.
+   *
+   * @return int[]
+   *   An array containing the last row and the column after the last one
+   *   written for the base fields.
+   */
+  protected function writeEntityBundleFields(
+    Worksheet $sheet,
+    EntityInterface $entity,
+    $row,
+    $column
+  ) {
+    $field_definitions = $this->getBundleFieldDefinitions(
+      $entity->getEntityTypeId(),
+      $entity->bundle()
+    );
+
+    foreach ($field_definitions as $field_definition) {
+      list($row, $column) = $this->writeEntityField(
+        $sheet,
+        $entity->get($field_definition->getName()),
+        $row,
+        $column
+      );
+    }
+    return [$row, $column];
+  }
+
+  /**
+   * Converts an individual field and writes it to the given sheet.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+   *   The sheet to which the vlaue will be written.
+   * @param \Drupal\Core\Field\FieldItemListInterface $field
+   *   The field which to convert to a cell value.
+   * @param int $row
+   *   The row at which to write the value.
+   * @param int $column
+   *   The column at which to write the value.
+   *
+   * @return int[]
+   *   An array containing the last row and the column after the last one
+   *   written for the field.
+   */
+  protected function writeEntityField(
+    Worksheet $sheet,
+    FieldItemListInterface $field,
+    $row,
+    $column
+  ) {
+    $value = NULL;
+    $data_type = NULL;
+
+    // Set the value and the data type of the cell.
+    $plugin = $this->getFieldPlugin($field->getFieldDefinition());
+    if ($plugin) {
+      $value = $plugin->toCellValue($field);
+      $data_type = $plugin->toCellDataType();
+    }
+    // Let's have a fallback in case we cannot determine the plugin; that can
+    // happen for custom (or not yet supported) field types.
+    else {
+      $value = $field->value;
+    }
+
+    $cell = $sheet->getCellByColumnAndRow($column, $row);
+    if ($data_type) {
+      $cell->setValueExplicit($value, $data_type);
+    }
+    else {
+      $cell->setValue($value);
+    }
+
+    // Let the field plugin apply styles to the cell.
+    if ($plugin) {
+      $plugin->toCellStyle(
+        $sheet->getStyleByColumnAndRow($column, $row)
+      );
+    }
+
+    return [$row , $column + 1];
+  }
+
+  /**
+   * Filters base field definitions to exclude those that will not be exported.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
+   *   The base field definitions being processed.
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
+   *   The filtered base field definitions.
+   */
+  protected function filterBaseFields(array $field_definitions) {
+    $blacklisted_fields = [
+      'uuid',
+      'langcode',
+      'uid',
+      'created',
+      'changed',
+      'default_langcode',
+      'metatag',
+    ];
+
+    return $this->filterFields($field_definitions, $blacklisted_fields);
+  }
+
+  /**
+   * Filters bundle field definitions excluding those that will not be exported.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
+   *   The bundle field definitions being processed.
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
+   *   The filtered bundle field definitions.
+   */
+  protected function filterBundleFields(array $field_definitions) {
+    return $field_definitions;
+  }
+
+  /**
+   * Filters field definitions to exclude those that will not be exported.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
+   *   The field definitions being processed.
+   * @param string[] $blacklisted_fields
+   *   An array containing names of fields that should not be exported.
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
+   *   The filtered field definitions.
+   */
+  protected function filterFields(
+    array $field_definitions,
+    array $blacklisted_fields = []
+  ) {
+    if (!$blacklisted_fields) {
+      return $field_definitions;
+    }
+
+    return array_filter(
+      $field_definitions,
+      function ($field_name) use ($blacklisted_fields) {
+        return !in_array($field_name, $blacklisted_fields);
+      },
+      ARRAY_FILTER_USE_KEY
+    );
+  }
+
+  /**
+   * Sorts field definitions in the order that they should be exported.
+   *
+   * The default order is alphabetical based on the fields' machine names, with
+   * read-only fields (protected/locked cells) going first.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface[] $field_definitions
+   *   The bundle field definitions being processed.
+   * @param string[] $read_only_field_names
+   *   An array containing names of fields that should be exported as protected
+   *   (locked/read-only).
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
+   *   The filtered bundle field definitions.
+   */
+  protected function sortFields(
+    array $field_definitions,
+    array $read_only_field_names = []
+  ) {
+    $read_only_field_definitions = array_filter(
+      $field_definitions,
+      function ($field_name) use ($read_only_field_names) {
+        return in_array($field_name, $read_only_field_names);
+      },
+      ARRAY_FILTER_USE_KEY
+    );
+    ksort($read_only_field_definitions);
+
+    $editable_field_definitions = array_filter(
+      $field_definitions,
+      function ($field_name) use ($read_only_field_names) {
+        return !in_array($field_name, $read_only_field_names);
+      },
+      ARRAY_FILTER_USE_KEY
+    );
+    ksort($editable_field_definitions);
+
+    return $read_only_field_definitions + $editable_field_definitions;
+  }
+
+  /**
+   * Returns the base field definitions for the entity type given by its ID.
+   *
+   * @param string $entity_type_id
+   *   The type ID of the entity being processed.
    *
    * @return Drupal\Core\Field\FieldDefinitionInterface[]
    *   The base field definitions.
    */
-  protected function getBaseFieldDefinitions(EntityInterface $entity) {
+  protected function getBaseFieldDefinitions($entity_type_id) {
     $field_definitions = $this->entityFieldManager->getBaseFieldDefinitions(
-      $entity->getEntityTypeId()
+      $entity_type_id
     );
 
     $field_definitions = $this->filterBaseFields($field_definitions);
@@ -495,22 +975,24 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   }
 
   /**
-   * Returns the bundle field definitions for the type of the given entity.
+   * Returns the bundle field definitions for the given entity type and bundle.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being processed.
+   * @param string $entity_type_id
+   *   The type ID of the entity being processed.
+   * @param string $bundle
+   *   The bundle of the entity being processed.
    *
    * @return \Drupal\Core\Field\FieldDefinitionInterface[]
    *   The bundle field definitions.
    */
-  protected function getBundleFieldDefinitions(EntityInterface $entity) {
+  protected function getBundleFieldDefinitions($entity_type_id, $bundle) {
     $all_definitions = $this->entityFieldManager->getFieldDefinitions(
-      $entity->getEntityTypeId(),
-      $entity->bundle()
+      $entity_type_id,
+      $bundle
     );
 
     $base_definitions = $this->entityFieldManager->getBaseFieldDefinitions(
-      $entity->getEntityTypeId()
+      $entity_type_id
     );
 
     $field_definitions = array_diff_key($all_definitions, $base_definitions);
@@ -533,8 +1015,35 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
   protected function getFieldPlugin(
     FieldDefinitionInterface $field_definition
   ) {
+    list($type, $locked) = $this->getFieldPluginByName($field_definition);
+    if (!$type) {
+      list($type, $locked) = $this->getFieldPluginByType($field_definition);
+    }
+
+    if (!$type) {
+      return;
+    }
+
+    return $this->createFieldPlugin($type, $locked);
+  }
+
+  /**
+   * Determines the handler plugin ID based on the given field definition name.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition for which to create the handler plugin for.
+   *
+   * @return array
+   *   An array containing the plugin ID as the first element (or NULL if none
+   *   was detected) and the plugin's Locked setting that will be used for its
+   *   instantiation as the second element (or NULL if it should be left to the
+   *   default setting value).
+   */
+  protected function getFieldPluginByName(
+    FieldDefinitionInterface $field_definition
+  ) {
     $type = NULL;
-    $locked = FALSE;
+    $locked = NULL;
 
     // Special cases.
     // @I Detect the bundle and status fields from the entity keys
@@ -547,6 +1056,27 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
         $type = 'boolean';
         break;
     }
+
+    return [$type, $locked];
+  }
+
+  /**
+   * Determines the handler plugin based on the given field definition type.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition for which to create the handler plugin for.
+   *
+   * @return array
+   *   An array containing the plugin ID as the first element (or NULL if none
+   *   was detected) and the plugin's Locked setting that will be used for its
+   *   instantiation as the second element (or NULL if it should be left to the
+   *   default setting value).
+   */
+  protected function getFieldPluginByType(
+    FieldDefinitionInterface $field_definition
+  ) {
+    $type = NULL;
+    $locked = NULL;
 
     switch ($field_definition->getType()) {
       case 'integer':
@@ -569,11 +1099,7 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
         break;
     }
 
-    if (!$type) {
-      return;
-    }
-
-    return $this->createFieldPlugin($type, $locked);
+    return [$type, $locked];
   }
 
   /**
@@ -581,18 +1107,120 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements Conta
    *
    * @param string $type
    *   The type of the handler plugin to create.
-   * @param bool $locked
+   * @param bool|null $locked
    *   The value for the Locked configuration setting of the plugin that
-   *   determines whether the resulting cell will be locked (read-only) or not.
+   *   determines whether the resulting cell will be locked (read-only) or
+   *   not. If NULL is given, no value will be passed to the factory and the
+   *   default configuration setting of the plugin will be used.
    *
    * @return \Drupal\commerce_sheets\FieldHandler\FieldHandlerInterface
    *   An instantiated field handler plugin of the given type.
    */
-  protected function createFieldPlugin($type, $locked = FALSE) {
+  protected function createFieldPlugin($type, $locked = NULL) {
+    // Let's keep line lengths within soft limits.
+    $lock = ['locked' => TRUE];
+    $do_not_lock = ['locked' => FALSE];
+
     return $this->fieldHandlerManager->createInstance(
       $type,
-      $locked ? ['locked' => TRUE] : []
+      $locked ? $lock : ($locked === FALSE ? $do_not_lock : [])
     );
+  }
+
+  /**
+   * Returns whether there is a secondary entity(ies) that should be exported.
+   *
+   * @return bool
+   *   TRUE if there is a secondary entity(ies) and it should be exported; FALSE
+   *   otherwise.
+   */
+  protected function hasSecondaryEntity() {
+    return FALSE;
+  }
+
+  /**
+   * Returns the Action plugin ID for the secondary entity, if any.
+   *
+   * @return string|null
+   *   The Action plugin ID for the secondary entity type, NULL if there is
+   *   none.
+   */
+  protected function getSecondaryEntityPluginId() {
+  }
+
+  /**
+   * Returns the ID of the secondary entity type, if any.
+   *
+   * @return string|null
+   *   The ID of the secondary entity type, NULL if there is none.
+   */
+  protected function getSecondaryEntityTypeId() {
+  }
+
+  /**
+   * Returns the label for the type of the secondary entity, if any.
+   *
+   * @return string|null
+   *   The label of the secondary entity type, NULL if there is none.
+   */
+  protected function getSecondaryEntityTypeLabel() {
+  }
+
+  /**
+   * Returns the bundle ID for the secondary entity.
+   *
+   * We currently only support (and assume) that the secondary entity is always
+   * of a specific type. For example, all variations of a product are of the
+   * same variation type.
+   *
+   * Things might get more complicated when we export orders, for example, where
+   * order items of different types can be the secondary entities for the same
+   * order. In that case bundle fields might be different for each order item
+   * and the columns will vary.
+   *
+   * @return string|null
+   *   The bundle of the secondary entity(ies), NULL if there is none.
+   */
+  protected function getSecondaryEntityBundleId(EntityInterface $entity) {
+  }
+
+  /**
+   * The name of the field that holds the secondary entity(ies).
+   *
+   * @return string|null
+   *   The name of the field, NULL if there is none.
+   */
+  protected function getSecondaryEntityFieldName() {
+  }
+
+  /**
+   * Returns the Action plugin for the secondary entity.
+   *
+   * @return \Drupal\commerce_sheets\Action\ExportInterface
+   *   The Action plugin.
+   */
+  protected function getSecondaryEntityPlugin() {
+    if (!$this->secondaryEntityPlugin) {
+      $this->secondaryEntityPlugin = $this->actionPluginManager
+        ->createInstance($this->getSecondaryEntityPluginId());
+    }
+
+    return $this->secondaryEntityPlugin;
+  }
+
+  /**
+   * Returns the secondary entity(ies) as fetch from the corresponding field.
+   *
+   * @return Drupal\Core\Entity\EntityInterface[]
+   *   An array containing the secondary entity(ies).
+   */
+  protected function getSecondaryEntityFieldValue(EntityInterface $entity) {
+    $field_name = $this->getSecondaryEntityFieldName();
+    if (!$entity->hasField($field_name)) {
+      return [];
+    }
+
+    return $entity->get($field_name)->referencedEntities();
   }
 
 }
