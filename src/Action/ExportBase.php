@@ -1079,6 +1079,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements
     $locked = NULL;
 
     switch ($field_definition->getType()) {
+      case 'commerce_price':
+        $type = 'price';
+        break;
+
       case 'integer':
         $type = 'integer';
         break;
