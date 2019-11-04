@@ -21,6 +21,7 @@ use PhpOffice\PhpSpreadsheet\Helper\Html;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment as StyleAlignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill as StyleFill;
+use PhpOffice\PhpSpreadsheet\Style\Protection as StyleProtection;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Psr\Log\LoggerInterface;
@@ -239,6 +240,21 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements
     // Generate header rows for the main sheet.
     list($row) = $this->writeHeader($sheet, $entities, 1, 1);
     $last_header_row = $row - 1;
+
+    // Lock all header rows.
+    // @I Rows seem to be get locked up to the Z column
+    $sheet
+      ->getStyleByColumnAndRow(
+        1,
+        1,
+        $sheet->getHighestColumn($last_header_row),
+        $last_header_row
+      )
+      ->getProtection()
+      ->setLocked(StyleProtection::PROTECTION_PROTECTED);
+
+    // Freeze first 2 header rows.
+    $sheet->freezePane('A3');
 
     // Generate entity rows for the main sheet.
     foreach ($entities as $entity) {
