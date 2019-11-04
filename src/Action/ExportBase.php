@@ -1091,6 +1091,10 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements
         $type = 'path';
         break;
 
+      case 'physical_measurement':
+        $type = 'measurement';
+        break;
+
       case 'string':
       case 'string_long':
       case 'text_long':
