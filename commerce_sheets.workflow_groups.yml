@@ -1,0 +1,3 @@
+commerce_sheets_import:
+  label: Import
+  entity_type: commerce_sheets_import

@@ -1,0 +1,23 @@
+commerce_sheets.admin:
+  title: 'Sheets'
+  description: 'Import data from sheets'
+  parent: commerce.admin_commerce
+  route_name: commerce_sheets.admin
+
+entity.commerce_sheets_import.collection:
+  title: 'Imports'
+  description: 'View your imports.'
+  route_name: 'entity.commerce_sheets_import.collection'
+  parent: 'commerce_sheets.admin'
+
+commerce_sheets.configuration:
+  title: 'Sheets'
+  description: 'View supported import types.'
+  route_name: 'commerce_sheets.configuration'
+  parent: 'commerce.configuration'
+
+entity.commerce_sheets_import_type.collection:
+  title: 'Import types'
+  description: 'Configure sheet import types.'
+  route_name: 'entity.commerce_sheets_import_type.collection'
+  parent: 'commerce_sheets.configuration'

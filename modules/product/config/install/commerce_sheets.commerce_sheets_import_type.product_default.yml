@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+id: product_default
+label: 'Product'
+description: 'A product import type provided by the Commerce Sheets module.'
+traits: {  }
+locked: false

@@ -1,0 +1,15 @@
+commerce_sheets.admin:
+  path: '/admin/commerce/sheets'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Sheets'
+  requirements:
+    _permission: 'access commerce_sheets pages'
+
+commerce_sheets.configuration:
+  path: '/admin/commerce/config/sheets'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Sheets'
+  requirements:
+    _permission: 'administer commerce_sheets'

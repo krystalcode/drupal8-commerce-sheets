@@ -1,0 +1,26 @@
+commerce_sheets_import_default:
+  id: import_default
+  group: commerce_sheets_import
+  label: 'Default'
+  states:
+    draft:
+      label: Draft
+    scheduled:
+      label: Scheduled
+    completed:
+      label: Completed
+    canceled:
+      label: Canceled
+  transitions:
+    schedule:
+      label: 'Schedule import'
+      from: [draft]
+      to: scheduled
+    complete:
+      label: 'Complete import'
+      from: [scheduled]
+      to: completed
+    cancel:
+      label: 'Cancel import'
+      from: [draft, scheduled]
+      to:   canceled

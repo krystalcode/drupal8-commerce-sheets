@@ -1,0 +1,7 @@
+commerce_sheets.commerce_sheets_import_type.*:
+  type: commerce_config_entity_bundle
+  label: 'Import type'
+  mapping:
+    description:
+      type: text
+      label: 'Description'

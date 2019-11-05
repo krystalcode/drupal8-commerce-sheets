@@ -1,0 +1,6 @@
+'access commerce_sheets pages':
+  title: 'Use the Commerce Sheets administration pages'
+
+'administer commerce_sheets':
+  title: 'Administer the Commerce Sheets module'
+  'restrict access': TRUE

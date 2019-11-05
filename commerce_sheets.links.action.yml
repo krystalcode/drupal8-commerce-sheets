@@ -1,0 +1,5 @@
+entity.commerce_sheets_import.add_page:
+  route_name: entity.commerce_sheets_import.add_page
+  title: 'Create a new import'
+  appears_on:
+    - entity.commerce_sheets_import.collection
