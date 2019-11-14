@@ -2,6 +2,8 @@
 
 namespace Drupal\commerce_sheets\EntityFormat;
 
+use Drupal\commerce_sheets\Event\EntityFormatEvent;
+use Drupal\commerce_sheets\Event\EntityFormatEvents;
 use Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface;
 
 use Drupal\Component\Utility\NestedArray;
@@ -12,6 +14,7 @@ use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\StringTranslation\TranslationInterface;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Base class for all entity format plugins.
@@ -49,6 +52,13 @@ abstract class EntityFormatBase extends PluginBase implements
    * @var \Drupal\Core\Entity\EntityTypeInterface
    */
   protected $entityType;
+
+  /**
+   * The event dispatcher.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
 
   /**
    * The Commerce Sheets field handler plugin manager.
@@ -103,6 +113,8 @@ abstract class EntityFormatBase extends PluginBase implements
    *   The entity format plugin manager.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   The event dispatcher.
    * @param \Drupal\commerce_sheets\FieldHandler\FieldHandlerManagerInterface $field_handler_manager
    *   The Commerce Sheets field handler plugin manager.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
@@ -115,6 +127,7 @@ abstract class EntityFormatBase extends PluginBase implements
     EntityFieldManagerInterface $entity_field_manager,
     EntityFormatManagerInterface $entity_format_manager,
     EntityTypeManagerInterface $entity_type_manager,
+    EventDispatcherInterface $event_dispatcher,
     FieldHandlerManagerInterface $field_handler_manager,
     TranslationInterface $string_translation
   ) {
@@ -133,6 +146,7 @@ abstract class EntityFormatBase extends PluginBase implements
     $this->entityFieldManager = $entity_field_manager;
     $this->entityFormatManager = $entity_format_manager;
     $this->entityTypeManager = $entity_type_manager;
+    $this->eventDispatcher = $event_dispatcher;
     $this->fieldHandlerManager = $field_handler_manager;
     // Property defined by StringTranslationTrait.
     $this->stringTranslation = $string_translation;
@@ -140,6 +154,16 @@ abstract class EntityFormatBase extends PluginBase implements
     // Initialize.
     $this->initPropertyDefinitions();
     $this->initPropertyPluginDefinitions();
+
+    // Dispatch an event allowing third parties to alter the format; this can be
+    // used, for example, to add custom data as columns to the spreadsheet by
+    // adding them to the format here as property definitions and then
+    // responding to relevant events for reading/writing the data as necessary.
+    $event = new EntityFormatEvent($this);
+    $this->eventDispatcher->dispatch(
+      EntityFormatEvents::POST_INIT,
+      $event
+    );
   }
 
   /**
@@ -158,6 +182,7 @@ abstract class EntityFormatBase extends PluginBase implements
       $container->get('entity_field.manager'),
       $container->get('plugin.manager.commerce_sheets_entity_format'),
       $container->get('entity_type.manager'),
+      $container->get('event_dispatcher'),
       $container->get('plugin.manager.commerce_sheets_field_handler'),
       $container->get('string_translation')
     );
