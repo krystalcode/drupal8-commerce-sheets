@@ -7,3 +7,7 @@ services:
   plugin.manager.commerce_sheets_field_handler:
     class: Drupal\commerce_sheets\FieldHandler\FieldHandlerManager
     parent: default_plugin_manager
+
+  plugin.manager.commerce_sheets_entity_format:
+    class: Drupal\commerce_sheets\EntityFormat\EntityFormatManager
+    parent: default_plugin_manager
