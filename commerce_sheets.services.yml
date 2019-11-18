@@ -11,3 +11,15 @@ services:
   plugin.manager.commerce_sheets_entity_format:
     class: Drupal\commerce_sheets\EntityFormat\EntityFormatManager
     parent: default_plugin_manager
+
+  commerce_sheets.writer:
+    class: Drupal\commerce_sheets\Sheet\Writer
+    arguments:
+      - '@current_user'
+      - '@plugin.manager.commerce_sheets_entity_format'
+      - '@entity_type.manager'
+      - '@event_dispatcher'
+      - '@file_system'
+      - '@logger.channel.commerce_sheets'
+      - '@messenger'
+      - '@string_translation'

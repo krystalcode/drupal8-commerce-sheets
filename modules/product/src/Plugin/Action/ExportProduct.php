@@ -5,7 +5,6 @@ namespace Drupal\commerce_sheets_product\Plugin\Action;
 use Drupal\commerce_sheets\Action\ExportBase;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 
 /**
@@ -16,8 +15,6 @@ use Drupal\Core\Session\AccountInterface;
  *   label = @Translation("Export selected product"),
  *   type = "commerce_product"
  * )
- *
- * @I Review which functions should be included in the base class.
  */
 class ExportProduct extends ExportBase {
 
@@ -43,85 +40,31 @@ class ExportProduct extends ExportBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @I Add validation that all given entities are of the same type and bundle
    */
   protected function validateEntities(array $entities) {}
 
   /**
    * {@inheritdoc}
    */
-  protected function filterBundleFields(array $field_definitions) {
-    return $this->filterFields(
-      $field_definitions,
-      ['variations']
-    );
+  protected function getFormatPluginId() {
+    return 'product_with_variations';
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function sortFields(array $field_definitions) {
-    $read_only_field_names = [
-      'product_id',
-      'type',
-    ];
-    return parent::sortFields($field_definitions, $read_only_field_names);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getFieldPlugin($field_definition) {
-    switch ($field_definition->getName()) {
-      case 'product_id':
-        return $this->createFieldPlugin('integer', TRUE);
-    }
-
-    return parent::getFieldPlugin($field_definition);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function hasSecondaryEntity() {
-    return TRUE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getSecondaryEntityPluginId() {
-    return 'commerce_sheets_export_product_variation';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getSecondaryEntityTypeId() {
-    return 'commerce_product_variation';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getSecondaryEntityTypeLabel() {
-    return 'Product Variation';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getSecondaryEntityBundleId(EntityInterface $entity) {
-    return $this->entityTypeManager
+  protected function alterFormatconfiguration(array &$format_configuration) {
+    $product_type = $this->entityTypeManager
       ->getStorage('commerce_product_type')
-      ->load($entity->bundle())
-      ->getVariationTypeId();
-  }
+      ->load($format_configuration['entity_bundle']);
 
-  /**
-   * {@inheritdoc}
-   */
-  protected function getSecondaryEntityFieldName() {
-    return 'variations';
+    $format_configuration['associated_entities'] = [
+      'format' => [
+        'entity_bundle' => $product_type->getVariationTypeId(),
+      ],
+    ];
   }
 
 }
