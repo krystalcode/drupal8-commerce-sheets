@@ -167,7 +167,7 @@ class Import extends ContentEntityBase implements ImportInterface {
     $fields['completed'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Completed'))
       ->setDescription(t(
-        'The time that the import was completed (executed or canceled).'
+        'The time that the import was completed (executed, failed or canceled).'
       ))
       ->setDisplayOptions('view', [
         'type' => 'timestamp',
@@ -212,7 +212,7 @@ class Import extends ContentEntityBase implements ImportInterface {
       ->setDescription(t('The import state.'))
       ->setRequired(TRUE)
       ->setSetting('max_length', 255)
-      ->setSetting('workflow', 'commerce_sheets_import')
+      ->setSetting('workflow', 'commerce_sheets_import_default')
       ->setDisplayOptions('view', [
         'type' => 'list_default',
         'weight' => 2,

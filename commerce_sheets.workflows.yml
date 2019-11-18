@@ -7,20 +7,32 @@ commerce_sheets_import_default:
       label: Draft
     scheduled:
       label: Scheduled
+    running:
+      label: Running
     completed:
       label: Completed
     canceled:
       label: Canceled
+    failed:
+      label: Failed
   transitions:
     schedule:
       label: 'Schedule import'
       from: [draft]
       to: scheduled
+    run:
+      label: 'Run import'
+      from: [draft, scheduled]
+      to: running
     complete:
       label: 'Complete import'
-      from: [scheduled]
+      from: [running]
       to: completed
     cancel:
       label: 'Cancel import'
-      from: [draft, scheduled]
+      from: [draft, scheduled, running]
       to:   canceled
+    fail:
+      label: 'Mark as failed'
+      from: [running]
+      to: failed

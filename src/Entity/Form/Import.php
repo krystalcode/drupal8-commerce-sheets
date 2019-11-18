@@ -51,4 +51,30 @@ class Import extends ContentEntityForm {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    parent::submitForm($form, $form_state);
+
+    $entity = $this->getEntity();
+    $state_item = $entity->get('state')->first();
+    $state_item->applyTransitionById('run');
+    $entity->save();
+
+    try {
+      // @I Properly inject service through constructor dependency injection
+      $reader = \Drupal::service('commerce_sheets.reader');
+      $reader->read($entity);
+    }
+    catch (\Exception $e) {
+      $state_item->applyTransitionById('fail');
+      $entity->save();
+      return;
+    }
+
+    $state_item->applyTransitionById('complete');
+    $entity->save();
+  }
+
 }
