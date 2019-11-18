@@ -2,8 +2,6 @@
 
 namespace Drupal\commerce_sheets\Plugin\CommerceSheets\FieldHandler;
 
-use Drupal\commerce_sheets\FieldHandler\FieldHandlerBase;
-
 /**
  * Provides a handler plugin for bundle fields.
  *
@@ -17,7 +15,7 @@ use Drupal\commerce_sheets\FieldHandler\FieldHandlerBase;
  *   }
  * )
  */
-class Bundle extends FieldHandlerBase {
+class Bundle extends EntityReference {
 
   /**
    * {@inheritdoc}
@@ -27,14 +25,6 @@ class Bundle extends FieldHandlerBase {
     return [
       'locked' => TRUE,
     ] + parent::defaultConfiguration();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function toCellValue($field) {
-    $entity = $field->entity;
-    return $entity->label() . ' (' . $entity->id() . ')';
   }
 
 }

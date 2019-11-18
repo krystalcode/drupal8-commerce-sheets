@@ -20,6 +20,22 @@ class Price extends FieldHandlerBase {
   /**
    * {@inheritdoc}
    */
+  public function fromCellGetValue($cell) {
+    $value = $cell->getValue();
+    if (!$value) {
+      return;
+    }
+
+    $value_parts = explode(' ', $value);
+    return [
+      'number' => $value_parts[0],
+      'currency_code' => $value_parts[1],
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function toCellValue($field) {
     if ($field->isEmpty()) {
       return;

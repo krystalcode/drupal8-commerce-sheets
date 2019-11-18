@@ -20,6 +20,49 @@ class EntityReference extends FieldHandlerBase {
   /**
    * {@inheritdoc}
    */
+  public function fromCellGetValue($cell) {
+    $values = $cell->getValue();
+    if (!$values) {
+      return;
+    }
+
+    $ids = array_map(
+      function ($value) {
+        $id = NULL;
+
+        // The value should be in the format "label (entity id)'; match the ID
+        // from inside the parentheses.
+        if (preg_match("/.+\s\(([^\)]+)\)/", $value, $matches)) {
+          $id = $matches[1];
+        }
+
+        return $id;
+      },
+      explode(',', $values)
+    );
+
+    return array_filter($ids);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function fromCellToField($cell, $field) {
+    if ($this->getLocked()) {
+      return;
+    }
+
+    $ids = $this->fromCellGetValue($cell);
+    if (!$ids) {
+      $field->setValue(NULL);
+    }
+
+    $field->setValue($ids);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function toCellValue($field) {
     $values = [];
 

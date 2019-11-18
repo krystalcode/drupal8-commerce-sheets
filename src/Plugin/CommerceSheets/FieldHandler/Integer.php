@@ -24,6 +24,13 @@ class Integer extends FieldHandlerBase {
   /**
    * {@inheritdoc}
    */
+  public function fromCellGetValue($cell) {
+    return (int) $cell->getValue();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function toCellDataType() {
     return DataType::TYPE_NUMERIC;
   }

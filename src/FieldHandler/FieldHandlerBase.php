@@ -3,6 +3,7 @@
 namespace Drupal\commerce_sheets\FieldHandler;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginBase;
 
@@ -12,7 +13,8 @@ use PhpOffice\PhpSpreadsheet\Style\Style;
 /**
  * Base class for all field handler plugins.
  */
-abstract class FieldHandlerBase extends PluginBase implements FieldHandlerInterface {
+abstract class FieldHandlerBase extends PluginBase implements
+  FieldHandlerInterface {
 
   /**
    * {@inheritdoc}
@@ -88,8 +90,35 @@ abstract class FieldHandlerBase extends PluginBase implements FieldHandlerInterf
   /**
    * {@inheritdoc}
    */
-  public function toCellValue($field) {
-    return $field->value;
+  public function validate($value) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function fromCellGetValue($cell) {
+    return (string) $cell->getValue();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function fromCellToField($cell, FieldItemListInterface $field) {
+    if ($this->getLocked()) {
+      return;
+    }
+
+    $field->setValue($this->fromCellGetValue($cell));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function toCellValue($property_value) {
+    if ($property_value instanceof FieldItemListInterface) {
+      return $property_value->value;
+    }
+
+    return $property_value;
   }
 
   /**
@@ -105,6 +134,16 @@ abstract class FieldHandlerBase extends PluginBase implements FieldHandlerInterf
     if ($this->getConfiguration()['locked']) {
       $style->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
     }
+  }
+
+  /**
+   * Returns the `locked` setting for the field handler.
+   *
+   * @return bool
+   *   The value of the `locked` setting.
+   */
+  protected function getLocked() {
+    return $this->getConfiguration()['locked'];
   }
 
 }

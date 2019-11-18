@@ -8,6 +8,7 @@ use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
 
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Style\Style;
 
 /**
@@ -19,6 +20,8 @@ use PhpOffice\PhpSpreadsheet\Style\Style;
  *   storing in fields.
  * - Convert field values into cell values for storing in the exported
  *   spreadsheet.
+ *
+ * @I Rename to PropertyHandler
  */
 interface FieldHandlerInterface extends
   ConfigurableInterface,
@@ -26,7 +29,37 @@ interface FieldHandlerInterface extends
   PluginFormInterface,
   PluginInspectionInterface {
 
+  /**
+   * Validates that the given value is in the format expected by the field.
+   *
+   * @param mixed $value
+   *   The value to validate.
+   */
   public function validate($value);
+
+  /**
+   * Returns the value of the given cell.
+   *
+   * The value is returned in the most reasonable format for the data contained
+   * in the cell.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Cell\Cell $cell
+   *   The cell to get the value from.
+   *
+   * @return mixed
+   *   The value.
+   */
+  public function fromCellGetValue(Cell $cell);
+
+  /**
+   * Stores the value of the cell to the given field.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Cell\Cell $cell
+   *   The cell to get the value from.
+   * @param \Drupal\Core\Field\FieldItemListInterface $field
+   *   The field where to store the value to.
+   */
+  public function fromCellToField(Cell $cell, FieldItemListInterface $field);
 
   /**
    * Returns the cell value for the given field.
