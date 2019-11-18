@@ -23,3 +23,10 @@ services:
       - '@logger.channel.commerce_sheets'
       - '@messenger'
       - '@string_translation'
+
+  commerce_sheets.reader:
+    class: Drupal\commerce_sheets\Sheet\Reader
+    arguments:
+      - '@plugin.manager.commerce_sheets_entity_format'
+      - '@entity_type.manager'
+      - '@file_system'
