@@ -302,7 +302,7 @@ abstract class EntityFormatBase extends PluginBase implements
   public function getPropertyPlugin($property) {
     $plugin_definition = $this->getPropertyPluginDefinition(
       $property,
-      $this->propertyMap[$property]
+      $this->propertyDefinitions[$property]
     );
 
     if (!$plugin_definition) {
@@ -460,7 +460,7 @@ abstract class EntityFormatBase extends PluginBase implements
    */
   protected function initPropertyPluginDefinitions() {
     array_walk(
-      $this->propertyMap,
+      $this->propertyDefinitions,
       function (&$definition, $property) {
         $definition['plugin'] = $this->getPropertyPluginDefinition(
           $property,
@@ -675,10 +675,10 @@ abstract class EntityFormatBase extends PluginBase implements
    * groups properties are sorted alphabetically.
    *
    * @param array $properties
-   *   The names of the properties to filter.
+   *   The names of the properties to sort.
    *
    * @return array
-   *   The filtered properties.
+   *   The sorted properties.
    *
    * @I Add the ability to customize sorting
    */
@@ -719,7 +719,7 @@ abstract class EntityFormatBase extends PluginBase implements
    *   The corresponding property name, or FALSE if it does not exist.
    */
   protected function entityKeyToProperty($entity_key) {
-    return $this->entityType()->getKey($entity_key);
+    return $this->getEntityType()->getKey($entity_key);
   }
 
   /**
@@ -783,11 +783,11 @@ abstract class EntityFormatBase extends PluginBase implements
 
     switch ($configuration['type']) {
       case 'content':
-        $plugin_id = 'content';
+        $plugin_id = 'content_entity';
         break;
 
       case 'entity_reference':
-        $plugin_id = 'entity_reference';
+        $plugin_id = 'content_entity';
         break;
 
       default:
