@@ -14,7 +14,7 @@ final class EntityFormatEvents {
    *
    * @Event
    *
-   * @see \Drupal\commerce_cart\Event\EntityFormatPreConstructEvent
+   * @see \Drupal\commerce_sheets\Event\EntityFormatPreConstructEvent
    */
   const PRE_CONSTRUCT = 'commerce_sheets.entity_format.pre_construct';
 
@@ -23,7 +23,7 @@ final class EntityFormatEvents {
    *
    * @Event
    *
-   * @see \Drupal\commerce_cart\Event\EntityFormatEvent
+   * @see \Drupal\commerce_sheets\Event\EntityFormatEvent
    */
   const POST_INIT = 'commerce_sheets.entity_format.post_init';
 

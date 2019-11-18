@@ -2,7 +2,7 @@
 
 namespace Drupal\commerce_sheets\Sheet;
 
-use Drupal\commerce_sheets\Event\WriterPropertyEvent;
+use Drupal\commerce_sheets\Event\WriterPropertyValueEvent;
 use Drupal\commerce_sheets\Event\WriterEvents;
 use Drupal\commerce_sheets\EntityFormat\EntityFormatInterface;
 use Drupal\commerce_sheets\EntityFormat\EntityFormatManagerInterface;
@@ -535,6 +535,30 @@ class Writer implements WriterInterface {
     $end_column = $end_column;
 
     foreach ($section['properties'] as $property) {
+      // First, allow any 3rd parties to determine the value of the property. If
+      // nobody does so, we will proceed with getting it from the entity
+      // property/field.
+      $event = new WriterPropertyValueEvent($entity, $property);
+      $this->eventDispatcher->dispatch(
+        WriterEvents::PROPERTY_PRE_WRITE,
+        $event
+      );
+      $property_value = $event->getPropertyValue();
+      if ($property_value) {
+        list($end_row, $end_column) = $this->writeProperty(
+          $sheet,
+          $property,
+          $property_value,
+          $format,
+          $row,
+          $column
+        );
+
+        $column = $end_column + 1;
+
+        continue;
+      }
+
       // The property may be a configuration or a content (fieldable) entity.
       // @I Review the case of non-fieldable content entities
       $property_exists = FALSE;
