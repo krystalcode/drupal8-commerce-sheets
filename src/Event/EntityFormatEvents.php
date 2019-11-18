@@ -8,6 +8,17 @@ namespace Drupal\commerce_sheets\Event;
 final class EntityFormatEvents {
 
   /**
+   * Name of the event fired before instantiating an entity format plugin.
+   *
+   * It allows altering the format by altering the plugin's configuration.
+   *
+   * @Event
+   *
+   * @see \Drupal\commerce_cart\Event\EntityFormatPreConstructEvent
+   */
+  const PRE_CONSTRUCT = 'commerce_sheets.entity_format.pre_construct';
+
+  /**
    * Name of the event fired after initializing property and plugin definitions.
    *
    * @Event

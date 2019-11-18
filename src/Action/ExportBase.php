@@ -145,9 +145,19 @@ abstract class ExportBase extends ViewsBulkOperationsActionBase implements
     ];
     $this->alterFormatConfiguration($format_configuration);
 
-    $format = $this->formatManager->createInstance(
+    // @I Move event to `formatManager::createInstance`
+    $event = new EntityFormatPreConstructEvent(
       $format_plugin_id,
       $format_configuration
+    );
+    $this->eventDispatcher->dispatch(
+      EntityFormatEvents::PRE_CONSTRUCT,
+      $event
+    );
+
+    $format = $this->formatManager->createInstance(
+      $event->getPluginId(),
+      $event->getConfiguration()
     );
 
     $writer = $this->writer->write($entities, $format);
