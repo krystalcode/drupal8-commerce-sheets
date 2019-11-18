@@ -44,4 +44,23 @@ class EntityFormatManager extends DefaultPluginManager implements
     $this->setCacheBackend($cache_backend, 'commerce_sheets_entity_format');
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function serializePluginDefinition(EntityFormatInterface $format) {
+    return json_encode(
+      [
+        'plugin_id' => $format->getPluginId(),
+        'configuration' => $format->getConfiguration(),
+      ]
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function deserializePluginDefinition($definition) {
+    return json_decode($definition, TRUE);
+  }
+
 }

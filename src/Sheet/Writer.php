@@ -153,6 +153,15 @@ class Writer implements WriterInterface {
     $sheet->getProtection()->setSheet(TRUE);
     $spreadsheet->getDefaultStyle()->getProtection()->setLocked(FALSE);
 
+    // Write the format in a serialized textual representation to the
+    // spreadsheet as a custom property. It will be used when importing the
+    // spreadsheet so that we know the exact format for reading it.
+    $spreadsheet->getProperties()->setCustomProperty(
+      EntityFormatManagerInterface::SPREADSHEET_CUSTOM_PROPERTY_FORMAT,
+      $this->formatManager->serializePluginDefinition($format),
+      Properties::PROPERTY_TYPE_STRING
+    );
+
     $initial_row = 1;
     $initial_column = 1;
 
