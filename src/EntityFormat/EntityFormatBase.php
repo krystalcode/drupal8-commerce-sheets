@@ -265,7 +265,7 @@ abstract class EntityFormatBase extends PluginBase implements
    * {@inheritdoc}
    */
   public function getEntityType() {
-    if (!$entityType) {
+    if (!$this->entityType) {
       // Load the entity type definition.
       $this->entityType = $this->entityTypeManager->getDefinition(
         $this->configuration['entity_type_id']
