@@ -17,6 +17,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Document\Properties;
 use PhpOffice\PhpSpreadsheet\Helper\Html;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -181,7 +182,9 @@ class Writer implements WriterInterface {
       ->getStyleByColumnAndRow(
         1,
         1,
-        $sheet->getHighestColumn($last_header_row),
+        Coordinate::columnIndexFromString(
+          $sheet->getHighestColumn($last_header_row)
+        ),
         $last_header_row
       )
       ->getProtection()
