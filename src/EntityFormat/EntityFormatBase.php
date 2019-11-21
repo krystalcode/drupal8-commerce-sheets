@@ -459,6 +459,8 @@ abstract class EntityFormatBase extends PluginBase implements
    * correspond to the properties.
    */
   protected function initPropertyPluginDefinitions() {
+    $this->protectPropertiesFromConfiguration();
+
     array_walk(
       $this->propertyDefinitions,
       function (&$definition, $property) {
@@ -523,7 +525,7 @@ abstract class EntityFormatBase extends PluginBase implements
    */
   protected function getPropertyPluginDefinitionForEntityKey(
     $property,
-    array $property_definition
+    array $definition
   ) {
     return [];
   }
@@ -545,12 +547,12 @@ abstract class EntityFormatBase extends PluginBase implements
    */
   protected function getPropertyPluginDefinitionByType(
     $property,
-    array $property_definition
+    array $definition
   ) {
     $type = NULL;
-    $locked = NULL;
+    $locked = empty($definition['protected']) ? NULL : $definition['protected'];
 
-    switch ($property_definition['type']) {
+    switch ($definition['type']) {
       case 'boolean':
         $type = 'boolean';
         break;
@@ -637,6 +639,43 @@ abstract class EntityFormatBase extends PluginBase implements
       $plugin_definition['id'],
       $plugin_definition['configuration']
     );
+  }
+
+  /**
+   * Marks the given properties as protected in the property definitions array.
+   *
+   * Properties marked as protected will be locked from being edited when their
+   * property handler plugin definitions are created.
+   *
+   * @param array $properties
+   *   The names of the properties to protect.
+   */
+  protected function protectProperties(array $properties) {
+    array_walk(
+      $this->propertyDefinitions,
+      function (&$definition, $property) use ($properties) {
+        if (in_array($property, $properties)) {
+          $definition['protected'] = TRUE;
+        }
+      }
+    );
+  }
+
+  /**
+   * Marks properties as protected based on the plugin's configuration.
+   *
+   * @see \Drupal\commerce_sheets\EntityFormat\EntityFormatBase::protectProperties()
+   */
+  protected function protectPropertiesFromConfiguration() {
+    if (!$this->configuration['protected_properties']) {
+      return;
+    }
+
+    $protected_properties = $this->mergeEntityKeysIntoProperties(
+      $this->configuration['protected_properties']
+    );
+
+    $this->protectProperties($protected_properties);
   }
 
   /**

@@ -149,13 +149,15 @@ abstract class ContentEntityFormatBase extends EntityFormatBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @I Use `protected` instead of `locked` everywhere to avoid confusion
    */
   protected function getPropertyPluginDefinitionForEntityKey(
     $property,
     array $definition
   ) {
     $type = NULL;
-    $locked = NULL;
+    $locked = empty($definition['protected']) ? NULL : $definition['protected'];
 
     // Special cases.
     switch ($property) {
