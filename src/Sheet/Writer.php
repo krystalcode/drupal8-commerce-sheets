@@ -387,8 +387,8 @@ class Writer implements WriterInterface {
     $file = $this->fileStorage->create([
       'uri' => $file_uri,
       'uid' => $this->currentUser->id(),
-      'status' => FILE_STATUS_TEMPORARY,
     ]);
+    $file->setTemporary();
     $file->save();
 
     return $file;
