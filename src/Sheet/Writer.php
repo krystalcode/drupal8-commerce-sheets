@@ -259,7 +259,7 @@ class Writer implements WriterInterface {
     // @I Permanently store the file in an Export entity
     $message = $this->t(
       'Export file created, <a href=":url">click here</a> to download.',
-      [':url' => $file->createFileUrl()]
+      [':url' => file_create_url($file->getFileUri())]
     );
     $this->messenger->addMessage($message);
   }
@@ -345,10 +345,21 @@ class Writer implements WriterInterface {
     $file_uri = $directory_uri . '/' . $filename;
 
     // @I Make scheme and path configurable
-    $directory_exists = $this->fileSystem->prepareDirectory(
-      $directory_uri,
-      FileSystemInterface::CREATE_DIRECTORY
-    );
+    // In earlier versions of Drupal the `prepareDirectory` method does not
+    // exist in the file system service.
+    $directory_exists = FALSE;
+    if (method_exists($this->fileSystem, 'prepareDirectory')) {
+      $directory_exists = $this->fileSystem->prepareDirectory(
+        $directory_uri,
+        FileSystemInterface::CREATE_DIRECTORY
+      );
+    }
+    else {
+      $directory_exists = file_prepare_directory(
+        $directory_uri,
+        FILE_CREATE_DIRECTORY
+      );
+    }
     if (!$directory_exists) {
       $log_message = sprintf(
         'An error occurred while preparing the directory with URI "%s" for

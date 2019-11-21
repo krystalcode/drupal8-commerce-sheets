@@ -2,8 +2,7 @@
 
 namespace Drupal\commerce_sheets\FieldHandler;
 
-use Drupal\Component\Plugin\ConfigurableInterface;
-use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -24,8 +23,7 @@ use PhpOffice\PhpSpreadsheet\Style\Style;
  * @I Rename to PropertyHandler
  */
 interface FieldHandlerInterface extends
-  ConfigurableInterface,
-  DependentPluginInterface,
+  ConfigurablePluginInterface,
   PluginFormInterface,
   PluginInspectionInterface {
 

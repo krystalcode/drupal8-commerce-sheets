@@ -2,8 +2,7 @@
 
 namespace Drupal\commerce_sheets\EntityFormat;
 
-use Drupal\Component\Plugin\ConfigurableInterface;
-use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -14,9 +13,8 @@ use Drupal\Core\Plugin\PluginFormInterface;
  * @I Document entity format plugins
  */
 interface EntityFormatInterface extends
-  ConfigurableInterface,
+  ConfigurablePluginInterface,
   ContainerFactoryPluginInterface,
-  DependentPluginInterface,
   PluginFormInterface,
   PluginInspectionInterface {
 
