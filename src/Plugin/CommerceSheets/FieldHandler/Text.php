@@ -13,6 +13,7 @@ use Drupal\commerce_sheets\FieldHandler\FieldHandlerBase;
  *   field_types = {
  *     "string",
  *     "string_long",
+ *     "text",
  *     "text_long",
  *     "text_with_summary",
  *   }
