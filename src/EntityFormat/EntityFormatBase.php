@@ -692,7 +692,7 @@ abstract class EntityFormatBase extends PluginBase implements
 
     $protected_properties = array_filter(
       $properties,
-      function ($properties) use ($protected_properties) {
+      function ($property) use ($protected_properties) {
         return in_array($property, $protected_properties);
       }
     );
