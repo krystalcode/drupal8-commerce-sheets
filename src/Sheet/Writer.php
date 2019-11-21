@@ -546,7 +546,7 @@ class Writer implements WriterInterface {
     $column
   ) {
     $end_row = $row;
-    $end_column = $end_column;
+    $end_column = $column;
 
     foreach ($section['properties'] as $property) {
       // First, allow any 3rd parties to determine the value of the property. If
