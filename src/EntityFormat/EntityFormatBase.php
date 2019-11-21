@@ -300,16 +300,13 @@ abstract class EntityFormatBase extends PluginBase implements
    *   be detected.
    */
   public function getPropertyPlugin($property) {
-    $plugin_definition = $this->getPropertyPluginDefinition(
-      $property,
-      $this->propertyDefinitions[$property]
-    );
-
-    if (!$plugin_definition) {
+    if (empty($this->propertyDefinitions[$property]['plugin'])) {
       return;
     }
 
-    return $this->createPropertyPlugin($plugin_definition);
+    return $this->createPropertyPlugin(
+      $this->propertyDefinitions[$property]['plugin']
+    );
   }
 
   /**
@@ -464,7 +461,7 @@ abstract class EntityFormatBase extends PluginBase implements
     array_walk(
       $this->propertyDefinitions,
       function (&$definition, $property) {
-        $definition['plugin'] = $this->getPropertyPluginDefinition(
+        $definition['plugin'] = $this->initPropertyPluginDefinition(
           $property,
           $definition
         );
@@ -473,7 +470,12 @@ abstract class EntityFormatBase extends PluginBase implements
   }
 
   /**
-   * Returns the property plugin definitions for the given property.
+   * Returns the property plugin definition for the given property.
+   *
+   * The returned plugin definition is determined by applying the defaults and
+   * the configuration provided by the format plugin. It may not be the final
+   * plugin definition for the property though as 3rd party subscribers have the
+   * opportunity to change the plugin definitions after their initialization.
    *
    * @param string $property
    *   The name of the property.
@@ -487,7 +489,7 @@ abstract class EntityFormatBase extends PluginBase implements
    *   - id: The ID of the property plugin.
    *   - configuration: An array containing the configuration of the plugin.
    */
-  protected function getPropertyPluginDefinition(
+  protected function initPropertyPluginDefinition(
     $property,
     array $property_definition
   ) {
