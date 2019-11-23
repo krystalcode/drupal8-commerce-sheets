@@ -4,6 +4,7 @@ namespace Drupal\commerce_sheets_product;
 
 use Drupal\commerce_product\Entity\ProductTypeInterface;
 use Drupal\commerce_product\Entity\ProductVariationTypeInterface as VariationTypeInterface;
+use Drupal\commerce_product\Entity\ProductAttributeInterface;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -34,6 +35,13 @@ class Permissions implements ContainerInjectionInterface {
   protected $variationTypeStorage;
 
   /**
+   * The attribute storage.
+   *
+   * @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface
+   */
+  protected $attributeStorage;
+
+  /**
    * Constructs a new Permissions object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -49,6 +57,9 @@ class Permissions implements ContainerInjectionInterface {
       ->getStorage('commerce_product_type');
     $this->variationTypeStorage = $entity_type_manager
       ->getStorage('commerce_product_variation_type');
+    $this->attributeStorage = $entity_type_manager
+      ->getStorage('commerce_product_attribute');
+
     $this->stringTranslation = $string_translation;
   }
 
@@ -63,7 +74,7 @@ class Permissions implements ContainerInjectionInterface {
   }
 
   /**
-   * Returns an array of product type permissions.
+   * Returns an array of permissions related to products.
    *
    * @return array
    *   An array of permissions.
@@ -79,6 +90,50 @@ class Permissions implements ContainerInjectionInterface {
     // Generate export permissions for all product types.
     foreach ($this->productTypeStorage->loadMultiple() as $type) {
       $permissions += $this->productTypePermissions($type);
+    }
+
+    return $permissions;
+  }
+
+  /**
+   * Returns an array of permissions related to product variations.
+   *
+   * @return array
+   *   An array of permissions.
+   *   @see \Drupal\user\PermissionHandlerInterface::getPermissions()
+   */
+  public function variationPermissions() {
+    $permissions = [
+      'commerce_sheets export any commerce_product_variation' => [
+        'title' => $this->t('Export any product variation of any type'),
+      ],
+    ];
+
+    // Generate export permissions for all variation types.
+    foreach ($this->variationTypeStorage->loadMultiple() as $type) {
+      $permissions += $this->variationTypePermissions($type);
+    }
+
+    return $permissions;
+  }
+
+  /**
+   * Returns an array of permissions related to product attributes.
+   *
+   * @return array
+   *   An array of permissions.
+   *   @see \Drupal\user\PermissionHandlerInterface::getPermissions()
+   */
+  public function attributeValuePermissions() {
+    $permissions = [
+      'commerce_sheets export any commerce_product_attribute_value' => [
+        'title' => $this->t('Export any value of any product attribute'),
+      ],
+    ];
+
+    // Generate export permissions for all attributes.
+    foreach ($this->attributeStorage->loadMultiple() as $attribute) {
+      $permissions += $this->attributePermissions($attribute);
     }
 
     return $permissions;
@@ -105,28 +160,6 @@ class Permissions implements ContainerInjectionInterface {
   }
 
   /**
-   * Returns an array of product variation type permissions.
-   *
-   * @return array
-   *   An array of permissions.
-   *   @see \Drupal\user\PermissionHandlerInterface::getPermissions()
-   */
-  public function variationPermissions() {
-    $permissions = [
-      'commerce_sheets export any commerce_product_variation' => [
-        'title' => $this->t('Export any product variation of any type'),
-      ],
-    ];
-
-    // Generate export permissions for all variation types.
-    foreach ($this->variationTypeStorage->loadMultiple() as $type) {
-      $permissions += $this->variationTypePermissions($type);
-    }
-
-    return $permissions;
-  }
-
-  /**
    * Returns a list of permissions for the given product variation type.
    *
    * @param \Drupal\commerce_product\Entity\ProductVariationTypeInterface $type
@@ -144,6 +177,29 @@ class Permissions implements ContainerInjectionInterface {
         'title' => $this->t(
           '%type_name: Export any product variation',
           $type_params
+        ),
+      ],
+    ];
+  }
+
+  /**
+   * Returns a list of permissions for the given product attribute.
+   *
+   * @param \Drupal\commerce_product\Entity\ProductAttributeInterface $attribute
+   *   The product attribute.
+   *
+   * @return array
+   *   An associative array of permission names and descriptions.
+   */
+  protected function attributePermissions(ProductAttributeInterface $attribute) {
+    $attribute_id = $attribute->id();
+    $attribute_params = ['%attribute_name' => $attribute->label()];
+
+    return [
+      "commerce_sheets export any $attribute_id commerce_product_attribute_value" => [
+        'title' => $this->t(
+          '%attribute_name: Export any product attribute value',
+          $attribute_params
         ),
       ],
     ];

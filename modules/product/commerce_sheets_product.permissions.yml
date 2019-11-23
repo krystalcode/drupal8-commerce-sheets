@@ -1,3 +1,4 @@
 permission_callbacks:
   - \Drupal\commerce_sheets_product\Permissions::productPermissions
   - \Drupal\commerce_sheets_product\Permissions::variationPermissions
+  - \Drupal\commerce_sheets_product\Permissions::attributeValuePermissions
