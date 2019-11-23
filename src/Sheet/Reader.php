@@ -11,6 +11,7 @@ use Drupal\Core\File\FileSystemInterface;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Worksheet\Row;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
@@ -117,6 +118,7 @@ class Reader implements ReaderInterface {
     $start_row,
     $start_column
   ) {
+    $entity = NULL;
     $entity_type_id = $format->getEntityTypeId();
     $entity_storage = $this->entityTypeManager->getStorage($entity_type_id);
 
@@ -134,16 +136,22 @@ class Reader implements ReaderInterface {
 
     // Go through each row and read its data.
     foreach ($sheet->getRowIterator($start_row) as $row) {
-      // Get the ID of the entity associated with the row. If there is no ID
-      // neither for the main entity nor for an associated entity, it's an empty
-      // row or an error - go to the next one.
-      $id = $this->getId($sheet, $format, $row->getRowIndex(), $start_column);
-      if (!$id) {
-        if (!$associated_section) {
-          continue;
-        }
+      if ($this->isRowEmpty($row)) {
+        continue;
+      }
 
-        // Read into the associated entity, if one was detected.
+      // Get the ID of the entity associated with the row. If there is no ID
+      // neither for the main entity nor for an associated entity, we are
+      // creating a new entity.
+      $id = $this->getId($sheet, $format, $row->getRowIndex(), $start_column);
+
+      // If we have an ID, load the entity.
+      if ($id) {
+        // Load the entity so that we can update its properties.
+        $entity = $entity_storage->load($id);
+      }
+      // If have an associated section, read that.
+      elseif (!$id && $associated_section) {
         $this->doRead(
           $sheet,
           $associated_format,
@@ -152,9 +160,14 @@ class Reader implements ReaderInterface {
         );
         continue;
       }
-
-      // Load the entity so that we can update its properties.
-      $entity = $entity_storage->load($id);
+      // Otherwise, create a new entity where the properties will be read into.
+      // @I Set reference between main entity and associated entity
+      elseif (!$id && !$associated_section) {
+        $bundle_property = $format->getEntityType()->getKey('bundle');
+        $entity = $entity_storage->create(
+          [$bundle_property => $format->getConfiguration()['entity_bundle']]
+        );
+      }
 
       // Go through each `properties` section defined in the format, read its
       // property values and update the entity.
@@ -232,6 +245,28 @@ class Reader implements ReaderInterface {
     $plugin = $format->getPropertyPluginForId();
 
     return $plugin->fromCellGetValue($cell);
+  }
+
+  /**
+   * Returns whether the given worksheet row is empty.
+   *
+   * A row is considered empty when all of its cells return an empty string as
+   * their values.
+   *
+   * @param \PhpOffice\PhpSpreadsheet\Worksheet\Row $row
+   *   The row to check.
+   *
+   * @return bool
+   *   TRUE when the given row is empty, FALSE otherwise.
+   */
+  protected function isRowEmpty(Row $row) {
+    foreach ($row->getCellIterator() as $cell) {
+      if ($cell->getValue() !== '') {
+        return FALSE;
+      }
+    }
+
+    return TRUE;
   }
 
 }
