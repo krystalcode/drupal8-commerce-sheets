@@ -225,6 +225,10 @@ abstract class EntityFormatBase extends PluginBase implements
         'entity_keys' => ['id'],
       ],
       'associated_entities' => [],
+      'operations' => [
+        'create' => TRUE,
+        'update' => TRUE,
+      ],
     ];
   }
 

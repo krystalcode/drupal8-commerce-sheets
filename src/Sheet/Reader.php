@@ -147,6 +147,11 @@ class Reader implements ReaderInterface {
 
       // If we have an ID, load the entity.
       if ($id) {
+        $update_allowed = $format->getConfiguration()['operations']['update'];
+        if (!$update_allowed) {
+          continue;
+        }
+
         // Load the entity so that we can update its properties.
         $entity = $entity_storage->load($id);
       }
@@ -163,6 +168,11 @@ class Reader implements ReaderInterface {
       // Otherwise, create a new entity where the properties will be read into.
       // @I Set reference between main entity and associated entity
       elseif (!$id && !$associated_section) {
+        $create_allowed = $format->getConfiguration()['operations']['create'];
+        if (!$create_allowed) {
+          continue;
+        }
+
         $bundle_property = $format->getEntityType()->getKey('bundle');
         $entity = $entity_storage->create(
           [$bundle_property => $format->getConfiguration()['entity_bundle']]
