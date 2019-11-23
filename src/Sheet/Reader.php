@@ -215,7 +215,7 @@ class Reader implements ReaderInterface {
       // After reading the main entity, read the associated entity that may be
       // defined on the same row.
       if (!$has_associated_entities) {
-        return;
+        continue;
       }
 
       $this->doRead(
