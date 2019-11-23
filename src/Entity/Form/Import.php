@@ -68,6 +68,15 @@ class Import extends ContentEntityForm {
       $reader->read($entity);
     }
     catch (\Exception $e) {
+      $message = sprintf(
+        'An error occurred while executing the Import with ID "%s" of type "%s"
+         with message: %s',
+        $entity->id(),
+        get_class($e),
+        $e->getMessage()
+      );
+      \Drupal::service('logger.channel.commerce_sheets')->error($message);
+
       $state_item->applyTransitionById('fail');
       $entity->save();
       return;
