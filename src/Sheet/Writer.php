@@ -737,9 +737,18 @@ class Writer implements WriterInterface {
     $row++;
 
     $base_field_definitions = $format->getBaseFieldDefinitions();
+
+    // We will only be adding the headers for the bundle fields section if we
+    // have one. That is, if the corresponding configuration setting is set to
+    // include bundle fields, and if there are any bundle fields to write after
+    // any fields removed by filtering.
+    $has_bundle_fields_section = $format->getConfiguration()['bundle_fields'];
     $bundle_field_definitions = $format->getBundleFieldDefinitions(
       $entity_bundle
     );
+    if (!$bundle_field_definitions) {
+      $has_bundle_fields_section = FALSE;
+    }
 
     // Header values for field labels.
     $column = $this->writeHeaderForFieldLabels(
@@ -748,17 +757,19 @@ class Writer implements WriterInterface {
       $row,
       $column
     );
-    $sheet->setCellValueByColumnAndRow(
-      $column + 1,
-      $first_row,
-      "BUNDLE $entity_type_label FIELDS"
-    );
-    $this->writeHeaderForFieldLabels(
-      $sheet,
-      $bundle_field_definitions,
-      $row,
-      $column + 1
-    );
+    if ($has_bundle_fields_section) {
+      $sheet->setCellValueByColumnAndRow(
+        $column + 1,
+        $first_row,
+        "BUNDLE $entity_type_label FIELDS"
+      );
+      $this->writeHeaderForFieldLabels(
+        $sheet,
+        $bundle_field_definitions,
+        $row,
+        $column + 1
+      );
+    }
 
     // Header values for additional field information.
     $row++;
@@ -769,12 +780,14 @@ class Writer implements WriterInterface {
       $row,
       $column
     );
-    $column = $this->writeHeaderForFieldInfo(
-      $sheet,
-      $bundle_field_definitions,
-      $row,
-      $column + 1
-    );
+    if ($has_bundle_fields_section) {
+      $column = $this->writeHeaderForFieldInfo(
+        $sheet,
+        $bundle_field_definitions,
+        $row,
+        $column + 1
+      );
+    }
 
     // Styles for the first header row.
     $styleArray = [

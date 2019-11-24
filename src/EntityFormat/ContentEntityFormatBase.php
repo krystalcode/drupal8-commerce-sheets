@@ -76,13 +76,36 @@ abstract class ContentEntityFormatBase extends EntityFormatBase {
 
   /**
    * {@inheritdoc}
-   *
-   * @I Split base/bundle property initialization to separate methods
    */
   protected function initPropertyDefinitions() {
     $this->propertyDefinitions = $this->entityFieldManager
       ->getFieldMap()[$this->getEntityType()->id()];
 
+    $this->initBaseFieldDefinitions();
+    $this->initBundleFieldDefinitions();
+
+    // Add the section for the associated entities, if required.
+    if (!$this->configuration['associated_entities']) {
+      return;
+    }
+
+    $associated_start_column = count($this->baseFieldDefinitions) + 1;
+    if (!empty($this->bundleFieldDefinitions)) {
+      $associated_start_column += count($this->bundleFieldDefinitions);
+    }
+
+    $this->sections[] = $this->createAssociatedEntitiesSection(
+      $this->configuration['associated_entities'],
+      $associated_start_column
+    );
+  }
+
+  /**
+   * Initializes the base field definitions for the plugin's entity type.
+   *
+   * @see \Drupal\commerce_sheets\EntityFormat\EntityFormatBase::initPropertyDefinitions()
+   */
+  protected function initBaseFieldDefinitions() {
     // Create the section for the base fields.
     $all_base_field_definitions = $this->entityFieldManager
       ->getBaseFieldDefinitions($this->getEntityType()->id());
@@ -107,44 +130,53 @@ abstract class ContentEntityFormatBase extends EntityFormatBase {
     foreach ($base_fields as $field) {
       $this->baseFieldDefinitions[$field] = $all_base_field_definitions[$field];
     }
+  }
 
-    // Create the section for the bundle fields and store the bundle field
-    // definitions.
-    if ($this->configuration['bundle_fields']) {
-      $all_field_definitions = $this->entityFieldManager->getFieldDefinitions(
-        $this->getEntityType()->id(),
-        $this->configuration['entity_bundle']
-      );
-      $all_bundle_field_definitions = array_diff_key($all_field_definitions, $all_base_field_definitions);
-      $all_bundle_fields = array_keys($all_bundle_field_definitions);
-
-      $bundle_fields = array_values(
-        $this->sortProperties(
-          $this->filterProperties($all_bundle_fields)
-        )
-      );
-      $this->sections[] = [
-        'type' => 'properties',
-        'properties' => $bundle_fields,
-        'start' => count($base_fields) + 1,
-        'size' => count($bundle_fields),
-      ];
-
-      $this->bundleFieldDefinitions = [];
-      foreach ($bundle_fields as $field) {
-        $this->bundleFieldDefinitions[$field] = $all_field_definitions[$field];
-      }
-    }
-
-    // Add the section for the associated entities, if required.
-    if (!$this->configuration['associated_entities']) {
+  /**
+   * Initializes the bundle field definitions for the plugin's entity type.
+   *
+   * @see \Drupal\commerce_sheets\EntityFormat\EntityFormatBase::initPropertyDefinitions()
+   */
+  protected function initBundleFieldDefinitions() {
+    if (!$this->configuration['bundle_fields']) {
       return;
     }
 
-    $this->sections[] = $this->createAssociatedEntitiesSection(
-      $this->configuration['associated_entities'],
-      count($base_fields) + count($bundle_fields) + 1
+    // Create the section for the bundle fields.
+    $all_field_definitions = $this->entityFieldManager->getFieldDefinitions(
+      $this->getEntityType()->id(),
+      $this->configuration['entity_bundle']
     );
+    $all_base_field_definitions = $this->entityFieldManager
+      ->getBaseFieldDefinitions($this->getEntityType()->id());
+    $all_bundle_field_definitions = array_diff_key(
+      $all_field_definitions,
+      $all_base_field_definitions
+    );
+    $all_bundle_fields = array_keys($all_bundle_field_definitions);
+
+    $bundle_fields = array_values(
+      $this->sortProperties(
+        $this->filterProperties($all_bundle_fields)
+      )
+    );
+
+    if (!$bundle_fields) {
+      return;
+    }
+
+    $this->sections[] = [
+      'type' => 'properties',
+      'properties' => $bundle_fields,
+      'start' => count($this->baseFieldDefinitions) + 1,
+      'size' => count($bundle_fields),
+    ];
+
+    // Store the filtered and sorted bundle field definitions array.
+    $this->bundleFieldDefinitions = [];
+    foreach ($bundle_fields as $field) {
+      $this->bundleFieldDefinitions[$field] = $all_field_definitions[$field];
+    }
   }
 
   /**
