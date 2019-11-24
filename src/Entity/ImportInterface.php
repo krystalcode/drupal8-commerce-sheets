@@ -13,6 +13,16 @@ interface ImportInterface extends
   EntityOwnerInterface {
 
   /**
+   * Indicates that imports should be run immediately after created.
+   */
+  const IMPORT_MODE_ON_CREATION = 0;
+
+  /**
+   * Indicates that imports should be run in a queue.
+   */
+  const IMPORT_MODE_QUEUE = 1;
+
+  /**
    * Gets the Import creation timestamp.
    *
    * @return int

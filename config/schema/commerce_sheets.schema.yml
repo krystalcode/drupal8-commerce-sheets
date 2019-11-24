@@ -1,3 +1,15 @@
+commerce_sheets.settings:
+  type: config_object
+  label: 'Commerce Sheets settings'
+  import:
+    type: mapping
+    label: 'Import settings'
+    mapping:
+      mode:
+        # @I Check if there's an enumartion config property type
+        type: string
+        label: 'Import mode'
+
 commerce_sheets.commerce_sheets_import_type.*:
   type: commerce_config_entity_bundle
   label: 'Import type'

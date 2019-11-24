@@ -10,14 +10,20 @@ entity.commerce_sheets_import.collection:
   route_name: 'entity.commerce_sheets_import.collection'
   parent: 'commerce_sheets.admin'
 
-commerce_sheets.configuration:
+commerce_sheets.config:
   title: 'Sheets'
   description: 'View supported import types.'
-  route_name: 'commerce_sheets.configuration'
+  route_name: 'commerce_sheets.config'
   parent: 'commerce.configuration'
+
+commerce_sheets.config.settings:
+  title: 'Settings'
+  description: 'Configure your imports/exports.'
+  route_name: 'commerce_sheets.config.settings'
+  parent: 'commerce_sheets.config'
 
 entity.commerce_sheets_import_type.collection:
   title: 'Import types'
   description: 'Configure sheet import types.'
   route_name: 'entity.commerce_sheets_import_type.collection'
-  parent: 'commerce_sheets.configuration'
+  parent: 'commerce_sheets.config'
