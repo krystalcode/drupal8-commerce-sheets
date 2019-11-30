@@ -6,6 +6,14 @@ commerce_sheets.admin:
   requirements:
     _permission: 'access commerce_sheets pages'
 
+commerce_sheets.admin.export:
+  path: '/admin/commerce/sheets/export'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Export'
+  requirements:
+    _permission: 'access commerce_sheets pages'
+
 commerce_sheets.config:
   path: '/admin/commerce/config/sheets'
   defaults:

@@ -5,9 +5,15 @@ commerce_sheets.admin:
   route_name: commerce_sheets.admin
 
 entity.commerce_sheets_import.collection:
-  title: 'Imports'
-  description: 'View your imports.'
+  title: 'Import'
+  description: 'Create an import or view existing ones.'
   route_name: 'entity.commerce_sheets_import.collection'
+  parent: 'commerce_sheets.admin'
+
+commerce_sheets.admin.export:
+  title: 'Export'
+  description: 'Export entities.'
+  route_name: 'commerce_sheets.admin.exports'
   parent: 'commerce_sheets.admin'
 
 commerce_sheets.config:
