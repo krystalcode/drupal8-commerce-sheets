@@ -13,7 +13,7 @@ entity.commerce_sheets_import.collection:
 commerce_sheets.admin.export:
   title: 'Export'
   description: 'Export entities.'
-  route_name: 'commerce_sheets.admin.exports'
+  route_name: 'commerce_sheets.admin.export'
   parent: 'commerce_sheets.admin'
 
 commerce_sheets.config:

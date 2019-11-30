@@ -508,7 +508,7 @@ display:
     position: 1
     display_options:
       display_extenders: {  }
-      path: admin/commerce/sheets/exports/attribute-values
+      path: admin/commerce/sheets/export/attribute-values
     cache_metadata:
       max-age: 0
       contexts:

@@ -2,4 +2,4 @@ commerce_sheets.admin.export_attribute_values:
   title: 'Attribute values'
   description: 'Select and export attribute values.'
   route_name: 'view.commerce_sheets_export_attribute_values.page'
-  parent: 'commerce_sheets.admin.exports'
+  parent: 'commerce_sheets.admin.export'
