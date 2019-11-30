@@ -7,7 +7,7 @@ commerce_sheets.settings:
     mapping:
       mode:
         # @I Check if there's an enumartion config property type
-        type: string
+        type: integer
         label: 'Import mode'
 
 commerce_sheets.commerce_sheets_import_type.*:

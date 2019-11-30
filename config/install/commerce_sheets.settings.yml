@@ -1,2 +1,2 @@
 import:
-  mode: 'on_creation'
+  mode: '0'
